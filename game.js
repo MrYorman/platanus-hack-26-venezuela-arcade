@@ -2002,7 +2002,10 @@ function spawnAnt() {
     // Variación sutil de velocidad individual
     speed *= (0.97 + Math.random() * 0.06);
 
-    const enemyX = TRUNK_X[tIdx] + side * (isSpaceShip ? 8 : (isGiant ? 7 : 6));
+    // Alineación precisa en su carril: se colocan claramente a cada lado del tronco (en su carril correspondiente)
+    // para que se entienda perfectamente si bajan por la izquierda o por la derecha, abrazando la corteza
+    const enemyLaneOffset = isSpaceShip ? 18 : (isGiant ? 19 : 18);
+    const enemyX = TRUNK_X[tIdx] + side * enemyLaneOffset;
     // Escalonamiento vertical inteligente: crea cascadas zigzagueantes para que el jugador pueda maniobrar
     const staggerY = (idx * 26) + Math.floor(Math.random() * 20);
     const spawnY = -32 - staggerY;
