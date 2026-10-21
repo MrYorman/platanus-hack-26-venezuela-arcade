@@ -1068,8 +1068,8 @@ function handlePlayerInput(dt) {
     scrollSpeed = 2.4; // Trepar con ganas
     chamito.targetY = Math.max(160, chamito.targetY - 140 * dt);
   } else if (held.P1_D) {
-    scrollSpeed = 0.1; // Deslizarse hacia el suelo
-    chamito.targetY = Math.min(520, chamito.targetY + 150 * dt);
+    scrollSpeed = 0.15; // Deslizarse hacia el suelo suavemente
+    chamito.targetY = Math.min(480, chamito.targetY + 45 * dt);
   } else {
     scrollSpeed = 0.6; // Desplazamiento suave al descansar
     chamito.targetY += (470 - chamito.targetY) * 0.08;
@@ -1095,7 +1095,7 @@ function handlePlayerInput(dt) {
   if (held.P1_U) {
     animRate = 9.5; // Trepada ágil y vigorosa al pulsar arriba
   } else if (held.P1_D) {
-    animRate = 5.0; // Deslizamiento
+    animRate = 2.2; // Descenso calmado y cuidadoso
   } else if (isJumping) {
     animRate = 8.0; // Salto entre troncos
   }
@@ -1219,13 +1219,13 @@ function updateWorldProgress(dt) {
     bestAltitude = Math.floor(altitude);
   }
 
-  // Spawn de Oleadas de Enemigos por los 8 carriles (variando entre 1, 2, 4, 6 y 8)
+  // Spawn de Oleadas de Enemigos por los 8 carriles (oleadas moderadas y balanceadas)
   antSpawnTimer += dt;
   const isSpace = altitude >= 850;
-  // Intervalo dinámico de oleadas: entre 1.05s y 1.70s para mantener la pantalla llena y variada
+  // Intervalo dinámico y balanceado de oleadas para dar tiempo de reacción arcade justo (1.8s a 2.6s)
   const waveInterval = isSpace
-    ? Math.max(0.95, 1.55 - (altitude - 850) * 0.0004)
-    : Math.max(1.05, 1.75 - altitude * 0.0008);
+    ? Math.max(1.7, 2.3 - (altitude - 850) * 0.0003)
+    : Math.max(1.85, 2.6 - altitude * 0.0006);
   if (antSpawnTimer > waveInterval) {
     antSpawnTimer = 0;
     spawnAnt();
@@ -1767,6 +1767,10 @@ function spawnAnt() {
   if (!currentScene) return;
   const isSpaceShip = altitude >= 850;
 
+  // Límite estricto de enemigos simultáneos en pantalla para mantener el juego justo y disfrutable
+  const maxSimultaneous = isSpaceShip ? 4 : 3;
+  if (ants.length >= maxSimultaneous) return;
+
   // 8 Carriles posibles (4 matas de mango × 2 lados cada una: izquierda y derecha)
   const allLanes = [
     { tIdx: 0, side: -1 }, { tIdx: 0, side: 1 },
@@ -1775,22 +1779,20 @@ function spawnAnt() {
     { tIdx: 3, side: -1 }, { tIdx: 3, side: 1 },
   ];
 
-  // Variación dinámica de oleadas: pueden bajar 1, 2, 4, 6 o hasta 7-8 enemigos por ráfagas
-  let count = 2;
+  // Control de densidad equilibrado: oleadas de 1 a 2 enemigos normalmente, rara vez 3
+  let count = 1;
   const r = Math.random();
-  if (altitude < 80) {
-    count = r < 0.4 ? 1 : (r < 0.85 ? 2 : 3);
-  } else if (altitude < 300) {
-    if (r < 0.25) count = 1 + Math.floor(Math.random() * 2); // 1 o 2 (respiro)
-    else if (r < 0.70) count = 3 + Math.floor(Math.random() * 2); // 3 o 4
-    else count = 5 + Math.floor(Math.random() * 2); // 5 o 6 (enjambre)
+  if (altitude < 150) {
+    count = r < 0.70 ? 1 : 2;
+  } else if (altitude < 650) {
+    count = r < 0.40 ? 1 : (r < 0.85 ? 2 : 3);
   } else {
-    // A alturas mayores: oleadas dinámicas con momentos de gran enjambre
-    if (r < 0.18) count = 1 + Math.floor(Math.random() * 2); // 1 o 2 (respiro)
-    else if (r < 0.55) count = 3 + Math.floor(Math.random() * 2); // 3 o 4 (estándar)
-    else if (r < 0.88) count = 5 + Math.floor(Math.random() * 2); // 5 o 6 (enjambre bravo)
-    else count = 7; // 7 carriles ocupados, dejando 1 vía libre de escape
+    count = r < 0.25 ? 1 : (r < 0.75 ? 2 : (r < 0.95 ? 3 : 4));
   }
+
+  // Ajustar count según el cupo restante en pantalla
+  count = Math.min(count, maxSimultaneous - ants.length);
+  if (count <= 0) return;
 
   // Mezclar los 8 carriles al azar
   for (let i = allLanes.length - 1; i > 0; i--) {
