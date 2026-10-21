@@ -754,13 +754,13 @@ function handlePlayerInput(dt) {
 
   // Trepar o deslizarse verticalmente (W / ↑ y S / ↓)
   if (held.P1_U) {
-    scrollSpeed = 4.2; // Trepar rápido hacia arriba
-    chamito.targetY = Math.max(160, chamito.targetY - 140 * dt);
+    scrollSpeed = 2.6; // Trepar rápido hacia arriba
+    chamito.targetY = Math.max(160, chamito.targetY - 150 * dt);
   } else if (held.P1_D) {
-    scrollSpeed = 0.8; // Deslizarse suavemente hacia abajo
-    chamito.targetY = Math.min(520, chamito.targetY + 180 * dt);
+    scrollSpeed = 0.2; // Deslizarse hacia abajo
+    chamito.targetY = Math.min(520, chamito.targetY + 160 * dt);
   } else {
-    scrollSpeed = 2.2; // Velocidad normal de subida constante
+    scrollSpeed = 0.8; // Velocidad suave
     chamito.targetY += (470 - chamito.targetY) * 0.08;
   }
 
@@ -814,16 +814,21 @@ function moveChamitoRight() {
 }
 
 function updateWorldProgress(dt) {
-  altitude += scrollSpeed * dt * 9;
-  score += Math.round(scrollSpeed * 0.7);
+  // Solo se avanza rápido si el chamito trepa y se mantiene arriba
+  const heightBoost = Math.max(0.15, (560 - chamito.y) / 320);
+  const climbEffort = held.P1_U ? 4.5 : (held.P1_D ? 0.05 : 0.6);
+  const effectiveClimb = climbEffort * heightBoost;
+
+  altitude += effectiveClimb * dt * 2.5;
+  score += Math.round(effectiveClimb * dt * 4);
 
   if (altitude > bestAltitude) {
     bestAltitude = Math.floor(altitude);
   }
 
-  // Spawn Hormigas
+  // Spawn Hormigas espaciadas (más justo y legible)
   antSpawnTimer += dt;
-  const antInterval = Math.max(0.65, 1.8 - altitude * 0.0012);
+  const antInterval = Math.max(1.3, 2.8 - altitude * 0.001);
   if (antSpawnTimer > antInterval) {
     antSpawnTimer = 0;
     spawnAnt();
@@ -831,7 +836,7 @@ function updateWorldProgress(dt) {
 
   // Spawn Mangos
   mangoSpawnTimer += dt;
-  if (mangoSpawnTimer > 1.2) {
+  if (mangoSpawnTimer > 1.8) {
     mangoSpawnTimer = 0;
     spawnMango();
   }
@@ -1094,14 +1099,14 @@ function spawnAnt() {
   const side = Math.random() < 0.5 ? -1 : 1;
   const r = Math.random();
   let tex = 'tex_ant_red';
-  let speed = 130 + altitude * 0.16;
+  let speed = 65 + altitude * 0.04;
 
   if (altitude > 150 && r > 0.65) {
     tex = 'tex_ant_black';
-    speed *= 1.35;
+    speed *= 1.25;
   } else if (altitude > 300 && r < 0.25) {
     tex = 'tex_ant_fire';
-    speed *= 1.7;
+    speed *= 1.45;
   }
 
   const sprite = currentScene.add.sprite(TRUNK_X[tIdx] + side * (OFFSET_X - 4), -25, tex).setDepth(15);
@@ -1122,7 +1127,7 @@ function spawnMango() {
 function updateAnts(dt) {
   for (let i = ants.length - 1; i >= 0; i--) {
     const a = ants[i];
-    a.sprite.y += (a.speed + scrollSpeed * 25) * dt;
+    a.sprite.y += (a.speed + scrollSpeed * 15) * dt;
 
     // Colisión con el chamito
     const dy = Math.abs(a.sprite.y - chamito.y);
@@ -1160,7 +1165,7 @@ function updateAnts(dt) {
 function updateMangos(dt) {
   for (let i = mangos.length - 1; i >= 0; i--) {
     const m = mangos[i];
-    m.sprite.y += scrollSpeed * 48 * dt;
+    m.sprite.y += (40 + scrollSpeed * 18) * dt;
 
     const dy = Math.abs(m.sprite.y - chamito.y);
     const dx = Math.abs(m.sprite.x - chamito.x);
