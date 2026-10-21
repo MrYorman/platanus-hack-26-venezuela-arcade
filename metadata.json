@@ -1,5 +1,5 @@
 {
-  "game_name": "Platanus Hack: Caracas Brick Breaker",
-  "description": "Batalla campal por romper la mayor cantidad de ladrillos",
-  "player_mode": "two_player"
+  "game_name": "Mono Vergatario",
+  "description": "Recreación del clásico juego de los celulares Vergatarios en Venezuela. Escala 4 troncos de bambú esquivando hormigas y comiendo bananas.",
+  "player_mode": "single_player"
 }
