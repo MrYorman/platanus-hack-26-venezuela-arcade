@@ -1,5 +1,5 @@
 // Platanus Hack 26 — Caracas Arcade Edition
-// CHAMITO VERGATARIO: LA MATA DE MANGO
+// CHAMITO: LA MATA DE MANGO
 // Recreación en Phaser 3 del clásico juego de los celulares Vergatarios en Venezuela
 
 const GAME_WIDTH = 800;
@@ -618,9 +618,9 @@ function createArcadeHUD(scene) {
   }
 
   // Título superior central
-  uiTexts.titleHeader = scene.add.text(400, 24, 'CHAMITO VERGATARIO', {
+  uiTexts.titleHeader = scene.add.text(400, 24, 'CHAMITO', {
     fontFamily: 'monospace',
-    fontSize: '18px',
+    fontSize: '20px',
     color: '#ffe600',
     fontStyle: 'bold',
   }).setOrigin(0.5).setDepth(26);
@@ -974,7 +974,7 @@ function updateHUD() {
 function showMenuUI(visible) {
   if (visible) {
     uiTexts.centerBox.setText(
-      'CHAMITO VERGATARIO\n★ LA MATA DE MANGO ★\n\nEsquiva las hormigas\ny agarra los mangos\n\nPresiona ENTER o W\npara jugar'
+      'CHAMITO\n★ LA MATA DE MANGO ★\n\nEsquiva las hormigas\ny agarra los mangos\n\nPresiona ENTER o W\npara jugar'
     ).setVisible(true);
   }
 }

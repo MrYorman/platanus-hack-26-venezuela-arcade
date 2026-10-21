@@ -7,3 +7,5 @@ yarn.lock
 .env
 .env.local
 version_canvas_laptop/
+
+phaser.min.js
