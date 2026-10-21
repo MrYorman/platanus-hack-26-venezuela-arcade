@@ -1117,31 +1117,179 @@ function renderDynamicBackground() {
     bgGraphics.fillCircle(355, avilaY - 97, 2); // Baliza roja de la antena
   }
 
-  // 3. CIUDAD DE CARACAS (EDIFICIOS URBANOS ENTRE EL BARRIO Y LA MONTAÑA)
-  const cityY = 320 + (alt * 0.75);
-  if (cityY < GAME_HEIGHT + 200 && cityY > -150) {
-    const buildings = [
-      { x: 18, w: 32, h: 110, c: 0x37474f },
-      { x: 55, w: 26, h: 80, c: 0x455a64 },
-      { x: 90, w: 45, h: 155, c: 0x263238 }, // Torre Parque Central
-      { x: 142, w: 35, h: 95, c: 0x546e7a },
-      { x: 260, w: 42, h: 150, c: 0x263238 }, // Torre gemela Parque Central
-      { x: 310, w: 30, h: 75, c: 0x455a64 },
-      { x: 345, w: 38, h: 105, c: 0x37474f },
-      { x: 410, w: 40, h: 85, c: 0x546e7a },
+  // 3. CIUDAD DE CARACAS (METRÓPOLIS MONUMENTAL: PARQUE CENTRAL, LA PREVISORA, CRISTAL Y AUTOPISTA)
+  const cityY = 330 + (alt * 0.72);
+  if (cityY < GAME_HEIGHT + 240 && cityY > -220) {
+    // A. Resplandor nocturno y cálido de la metrópolis en el valle
+    bgGraphics.fillStyle(0xff7043, 0.22);
+    bgGraphics.fillEllipse(240, cityY + 45, GAME_WIDTH * 1.25, 170);
+    bgGraphics.fillStyle(0xffb300, 0.14);
+    bgGraphics.fillEllipse(240, cityY + 15, GAME_WIDTH * 0.9, 110);
+
+    // B. Siluetas de Rascacielos Lejanos (Capa de Profundidad 1 - Azul Noche)
+    const farTowers = [
+      { x: 0, w: 32, h: 90 }, { x: 32, w: 24, h: 70 }, { x: 56, w: 34, h: 120 },
+      { x: 135, w: 42, h: 95 }, { x: 177, w: 28, h: 80 }, { x: 220, w: 36, h: 105 },
+      { x: 305, w: 32, h: 85 }, { x: 337, w: 48, h: 125 }, { x: 425, w: 55, h: 95 }
     ];
-    buildings.forEach((b) => {
-      bgGraphics.fillStyle(b.c, 0.85);
-      bgGraphics.fillRect(b.x, cityY - b.h + 80, b.w, b.h);
-      // Ventanitas iluminadas de noche/atardecer
-      if (alt > 300) {
-        bgGraphics.fillStyle(0xffeb3b, 0.7);
-        for (let wy = cityY - b.h + 90; wy < cityY + 70; wy += 14) {
-          bgGraphics.fillRect(b.x + 6, wy, 4, 5);
-          bgGraphics.fillRect(b.x + b.w - 10, wy, 4, 5);
+    bgGraphics.fillStyle(0x111c2a, 0.9);
+    farTowers.forEach((t) => {
+      bgGraphics.fillRect(t.x, cityY - t.h + 80, t.w, t.h);
+      // Luces lejanas de advertencia aeronáutica en la cúspide
+      bgGraphics.fillStyle(0xff1744, 0.85);
+      bgGraphics.fillCircle(t.x + t.w / 2, cityY - t.h + 78, 1.4);
+      bgGraphics.fillStyle(0x111c2a, 0.9);
+    });
+
+    // C. Rascacielos Principales y Monumentos Icónicos de Caracas (Capa de Profundidad 2)
+
+    // 1. TORRES GEMELAS DE PARQUE CENTRAL (Torre Este en x: 82 y Torre Oeste en x: 258)
+    const twinTowersX = [82, 258];
+    twinTowersX.forEach((tx) => {
+      const th = 215;
+      const tw = 48;
+      const topY = cityY - th + 80;
+
+      // Estructura octogonal de concreto armado
+      bgGraphics.fillStyle(0x1e2d42, 1);
+      bgGraphics.fillRect(tx, topY, tw, th);
+
+      // Pilares estructurales verticales (columnas exteriores icónicas)
+      bgGraphics.fillStyle(0x2d3e56, 1);
+      bgGraphics.fillRect(tx + 4, topY, 8, th);
+      bgGraphics.fillRect(tx + tw - 12, topY, 8, th);
+      bgGraphics.fillStyle(0x415a77, 1);
+      bgGraphics.fillRect(tx + 18, topY, tw - 36, th);
+
+      // Antena de telecomunicaciones en la cima
+      bgGraphics.lineStyle(1.8, 0xffffff, 0.95);
+      bgGraphics.lineBetween(tx + tw / 2, topY, tx + tw / 2, topY - 32);
+      bgGraphics.lineStyle(1.2, 0xff1744, 1);
+      bgGraphics.lineBetween(tx + tw / 2 - 4, topY - 14, tx + tw / 2 + 4, topY - 14);
+      // Luz roja estroboscópica en la punta de la antena
+      bgGraphics.fillStyle(0xff1744, 1);
+      bgGraphics.fillCircle(tx + tw / 2, topY - 33, (Math.floor(timeSec * 3) % 2 === 0 ? 2.5 : 1.5));
+
+      // Ventanas iluminadas de oficinas activas (matriz densa realista)
+      for (let wy = topY + 12; wy < cityY + 70; wy += 9) {
+        for (let wx = tx + 5; wx < tx + tw - 6; wx += 6) {
+          const rand = Math.sin(wx * 17.3 + wy * 31.7);
+          if (rand > 0.1) {
+            bgGraphics.fillStyle(rand > 0.65 ? 0xffea00 : (rand > 0.35 ? 0x80d8ff : 0xffffff), 0.85);
+            bgGraphics.fillRect(wx, wy, 3.5, 4.5);
+          }
         }
       }
     });
+
+    // 2. TORRE LA PREVISORA (Con su célebre reloj gigante iluminado en la cúspide)
+    const prevX = 178, prevW = 42, prevH = 175;
+    const prevTopY = cityY - prevH + 80;
+    // Cuerpo del edificio
+    bgGraphics.fillStyle(0x2b3543, 1);
+    bgGraphics.fillRect(prevX, prevTopY + 22, prevW, prevH - 22);
+    // Cúpula piramidal de La Previsora
+    bgGraphics.fillStyle(0x1f2732, 1);
+    bgGraphics.fillTriangle(prevX, prevTopY + 22, prevX + prevW, prevTopY + 22, prevX + prevW / 2, prevTopY);
+
+    // EL GRAN RELOJ DE LA PREVISORA (Símbolo lumínico de Caracas)
+    bgGraphics.fillStyle(0xffd700, 1);
+    bgGraphics.fillCircle(prevX + prevW / 2, prevTopY + 14, 8);
+    bgGraphics.fillStyle(0xfff59d, 1);
+    bgGraphics.fillCircle(prevX + prevW / 2, prevTopY + 14, 6.5);
+    // Agujas del reloj
+    bgGraphics.lineStyle(1.4, 0x000000, 1);
+    bgGraphics.lineBetween(prevX + prevW / 2, prevTopY + 14, prevX + prevW / 2, prevTopY + 9);
+    bgGraphics.lineBetween(prevX + prevW / 2, prevTopY + 14, prevX + prevW / 2 + 4, prevTopY + 14);
+
+    // Ventanas de La Previsora
+    for (let wy = prevTopY + 28; wy < cityY + 70; wy += 10) {
+      for (let wx = prevX + 6; wx < prevX + prevW - 6; wx += 7) {
+        if (Math.sin(wx * 23.1 + wy * 19.3) > 0.15) {
+          bgGraphics.fillStyle(0xffe082, 0.8);
+          bgGraphics.fillRect(wx, wy, 4, 5);
+        }
+      }
+    }
+
+    // 3. TORRES FINANCIERAS DE CRISTAL (Fachadas de vidrio reflectante cian y helipuerto)
+    const glassTowers = [
+      { x: 22, w: 46, h: 145, color: 0x006064 },
+      { x: 335, w: 44, h: 185, color: 0x004d40 },
+      { x: 405, w: 56, h: 155, color: 0x1a237e },
+    ];
+    glassTowers.forEach((gt) => {
+      const gTopY = cityY - gt.h + 80;
+      // Fachada vidriada
+      bgGraphics.fillStyle(gt.color, 1);
+      bgGraphics.fillRect(gt.x, gTopY, gt.w, gt.h);
+
+      // Líneas de muro cortina de vidrio reflectante en cian neón
+      bgGraphics.lineStyle(1, 0x00e5ff, 0.45);
+      for (let vx = gt.x + 6; vx < gt.x + gt.w; vx += 7) {
+        bgGraphics.lineBetween(vx, gTopY, vx, cityY + 70);
+      }
+      for (let hy = gTopY + 8; hy < cityY + 70; hy += 12) {
+        bgGraphics.lineBetween(gt.x, hy, gt.x + gt.w, hy);
+      }
+
+      // Helipuerto en la azotea de la torre 335
+      if (gt.x === 335) {
+        bgGraphics.fillStyle(0x37474f, 1);
+        bgGraphics.fillRect(gt.x + 6, gTopY - 6, gt.w - 12, 6);
+        // Letra H iluminada
+        bgGraphics.lineStyle(1.4, 0xffea00, 0.9);
+        bgGraphics.strokeCircle(gt.x + gt.w / 2, gTopY - 3, 5);
+      }
+    });
+
+    // 4. LETRERO DE NEÓN URBANO "CARACAS" Y PANTALLA GIGANTE
+    const signX = 345, signY = cityY - 185 + 68;
+    const neonColor = (Math.floor(timeSec * 2) % 2 === 0) ? 0x00e5ff : 0xf50057;
+    bgGraphics.lineStyle(2, neonColor, 0.95);
+    bgGraphics.strokeRect(signX, signY, 26, 12);
+    bgGraphics.fillStyle(neonColor, 0.85);
+    bgGraphics.fillRect(signX + 3, signY + 3, 20, 6);
+
+    // 5. AUTOPISTA FRANCISCO FAJARDO Y TRÁFICO URBANO DINÁMICO (RÍOS DE LUZ)
+    const hwyY = cityY + 70;
+    // Viaducto de concreto elevado
+    bgGraphics.fillStyle(0x1a242f, 1);
+    bgGraphics.fillRect(0, hwyY, GAME_WIDTH, 14);
+    bgGraphics.lineStyle(1.5, 0x455a64, 0.8);
+    bgGraphics.lineBetween(0, hwyY, GAME_WIDTH, hwyY);
+    bgGraphics.lineBetween(0, hwyY + 14, GAME_WIDTH, hwyY + 14);
+
+    // Postes de alumbrado con vapor de sodio dorado
+    bgGraphics.fillStyle(0xffb300, 0.8);
+    for (let lx = 15; lx < GAME_WIDTH; lx += 45) {
+      bgGraphics.lineStyle(1, 0x78909c, 0.6);
+      bgGraphics.lineBetween(lx, hwyY - 8, lx, hwyY);
+      bgGraphics.fillCircle(lx, hwyY - 8, 2);
+    }
+
+    // VEHÍCULOS EN MOVIMIENTO REAL (FAROS BLANCOS/ORO HACIA EL ESTE, LUCES ROJAS HACIA EL OESTE)
+    // Carril 1: Hacia el este (faros dorados/blancos rápidos)
+    bgGraphics.fillStyle(0xfff59d, 1);
+    for (let i = 0; i < 9; i++) {
+      const cx = ((timeSec * 115 + i * 58) % (GAME_WIDTH + 50)) - 25;
+      bgGraphics.fillRect(cx, hwyY + 3, 7, 2.5);
+      // Haz de luz frontal
+      bgGraphics.fillStyle(0xffffff, 0.4);
+      bgGraphics.fillRect(cx + 7, hwyY + 3.5, 12, 1.5);
+      bgGraphics.fillStyle(0xfff59d, 1);
+    }
+
+    // Carril 2: Hacia el oeste (luces traseras rojas continuas)
+    bgGraphics.fillStyle(0xff1744, 1);
+    for (let i = 0; i < 9; i++) {
+      const cx = GAME_WIDTH - (((timeSec * 105 + i * 54) % (GAME_WIDTH + 50)) - 25);
+      bgGraphics.fillRect(cx, hwyY + 8, 6, 2.5);
+      // Haz de estela roja
+      bgGraphics.fillStyle(0xd50000, 0.4);
+      bgGraphics.fillRect(cx + 6, hwyY + 8.5, 10, 1.5);
+      bgGraphics.fillStyle(0xff1744, 1);
+    }
   }
 
   // 4. BARRIO CARAQUEÑO Y PATIO FIRME (PRIMER PLANO TERRESTRE)
