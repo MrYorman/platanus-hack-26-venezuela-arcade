@@ -3,9 +3,13 @@ package-lock.json
 pnpm-lock.yaml
 yarn.lock
 .DS_Store
+Thumbs.db
 *.log
 .env
-.env.local
+.env.*
+dist/
+.vite/
+*.tmp
 version_canvas_laptop/
 
 phaser.min.js
