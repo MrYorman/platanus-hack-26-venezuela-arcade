@@ -310,6 +310,8 @@ let chamito = {
   isDying: false,
   deathVx: 0,
   deathVy: 0,
+  climbAnimTimer: 0,
+  climbFrame: 0,
 };
 
 let ants = [];
@@ -394,98 +396,177 @@ function create() {
 
 // --- GENERACIÓN DE TEXTURAS PROCEDURALES ---
 function generateProceduralTextures(scene) {
-  // 1. Chamito (Niño venezolano con camisa escolar y morral tricolor)
-  const gC = scene.make.graphics({ x: 0, y: 0, add: false });
-  
-  // Shorts azul escolar
-  gC.fillStyle(0x1a237e, 1);
-  gC.fillRect(11, 27, 6, 12);
-  gC.fillRect(19, 27, 6, 12);
-  // Zapatos marrones
-  gC.fillStyle(0x4e342e, 1);
-  gC.fillRect(10, 38, 7, 5);
-  gC.fillRect(19, 38, 7, 5);
+  // 1A. Chamito Trepador - Cuadro 1 (Brazo derecho arriba agarrando corteza, rodilla derecha flexionada, SIN bolso)
+  const gC1 = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Pierna trasera (izquierda) empujando hacia abajo
+  gC1.fillStyle(0x101758, 1);
+  gC1.fillRoundedRect(10, 26, 6, 9, 2);
+  gC1.fillStyle(0xbe8b68, 1);
+  gC1.fillRect(11, 34, 5, 7);
+  gC1.fillStyle(0x38241f, 1);
+  gC1.fillRoundedRect(9, 40, 7, 5, 2);
 
-  // Camisa escolar blanca/beige
-  gC.fillStyle(0xf5f5f5, 1);
-  gC.fillRoundedRect(10, 16, 16, 13, 3);
+  // Brazo trasero (izquierdo) apoyado a media altura en el tronco
+  gC1.fillStyle(0xbe8b68, 1);
+  gC1.fillCircle(24, 23, 3.5);
+  gC1.fillRect(25, 21, 3, 4);
 
-  // Morral tricolor en la espalda
-  gC.fillStyle(0xffd600, 1); // Amarillo
-  gC.fillRect(2, 17, 8, 4);
-  gC.fillStyle(0x1565c0, 1); // Azul
-  gC.fillRect(2, 21, 8, 4);
-  gC.fillStyle(0xffffff, 1); // Estrellitas
-  gC.fillRect(4, 22, 1.5, 1.5);
-  gC.fillRect(7, 22, 1.5, 1.5);
-  gC.fillStyle(0xd32f2f, 1); // Rojo
-  gC.fillRect(2, 25, 8, 4);
+  // Camisa escolar blanca (sin bolso/morral, libre y atlético)
+  gC1.fillStyle(0xf8f9fa, 1);
+  gC1.fillRoundedRect(9, 15, 14, 13, 3);
+  gC1.fillStyle(0xd0d5dd, 1);
+  gC1.fillRect(14, 15, 4, 3); // Cuello de la chemise
 
-  // Brazos agarrando el tronco
-  gC.fillStyle(0xd7a17c, 1);
-  gC.fillCircle(25, 19, 4);
-  gC.fillCircle(25, 26, 4);
+  // Pierna delantera (derecha) rodilla arriba abrazando el tronco
+  gC1.fillStyle(0x1a237e, 1);
+  gC1.fillRoundedRect(15, 25, 8, 8, 2);
+  gC1.fillStyle(0xd7a17c, 1);
+  gC1.fillRect(19, 31, 6, 6);
+  gC1.fillStyle(0x4e342e, 1);
+  gC1.fillRoundedRect(21, 36, 7, 5, 2);
+
+  // Brazo delantero (derecho) estirado ALTO trepando y agarrando corteza
+  gC1.lineStyle(4, 0xd7a17c, 1);
+  gC1.beginPath();
+  gC1.moveTo(18, 17);
+  gC1.lineTo(23, 11);
+  gC1.lineTo(27, 8);
+  gC1.strokePath();
+  gC1.fillStyle(0xd7a17c, 1);
+  gC1.fillCircle(27, 8, 3.8);
+  gC1.fillRect(28, 6, 3, 4.5); // Dedos agarrando
 
   // Cabeza del chamito
-  gC.fillStyle(0xd7a17c, 1);
-  gC.fillCircle(18, 10, 8);
-  // Cabello negro peinado hacia el lado
-  gC.fillStyle(0x212121, 1);
-  gC.fillCircle(17, 6, 7.5);
-  gC.fillCircle(21, 7, 5.5);
-  gC.fillCircle(13, 8, 5.5);
+  gC1.fillStyle(0xd7a17c, 1);
+  gC1.fillCircle(17, 10, 7.5);
+  // Cabello negro peinado hacia adelante con mechón
+  gC1.fillStyle(0x1f1f1f, 1);
+  gC1.fillCircle(16, 6, 7);
+  gC1.fillCircle(20, 7, 5.5);
+  gC1.fillCircle(12, 8, 5);
+  gC1.fillTriangle(19, 4, 24, 2, 21, 7);
 
   // Orejita
-  gC.fillStyle(0xd7a17c, 1);
-  gC.fillCircle(10, 10, 2.5);
+  gC1.fillStyle(0xd7a17c, 1);
+  gC1.fillCircle(9, 10, 2.5);
+
+  // Ojo alegre mirando hacia arriba a los mangos
+  gC1.fillStyle(0xffffff, 1);
+  gC1.fillCircle(19, 9, 2.5);
+  gC1.fillStyle(0x111111, 1);
+  gC1.fillCircle(20, 8.5, 1.4);
+  gC1.fillStyle(0xffffff, 1);
+  gC1.fillRect(20, 8, 1, 1);
+
+  // Sonrisa de trepar
+  gC1.lineStyle(1.4, 0x5d4037, 1);
+  gC1.beginPath();
+  gC1.arc(19, 13, 2.5, 0.2, Math.PI * 0.9, false);
+  gC1.strokePath();
+
+  gC1.generateTexture('tex_chamito_climb1', 38, 46);
+  gC1.generateTexture('tex_chamito', 38, 46); // Compatible con la textura base
+  gC1.destroy();
+
+  // 1B. Chamito Trepador - Cuadro 2 (Brazo izquierdo arriba, rodilla izquierda flexionada, alternancia activa estilo mono)
+  const gC2 = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Pierna delantera (derecha) empujando hacia abajo
+  gC2.fillStyle(0x1a237e, 1);
+  gC2.fillRoundedRect(14, 25, 7, 9, 2);
+  gC2.fillStyle(0xd7a17c, 1);
+  gC2.fillRect(15, 33, 5, 8);
+  gC2.fillStyle(0x4e342e, 1);
+  gC2.fillRoundedRect(13, 40, 7, 5, 2);
+
+  // Pierna trasera (izquierda) rodilla arriba abrazando el tronco
+  gC2.fillStyle(0x101758, 1);
+  gC2.fillRoundedRect(11, 24, 7, 8, 2);
+  gC2.fillStyle(0xbe8b68, 1);
+  gC2.fillRect(17, 29, 6, 7);
+  gC2.fillStyle(0x38241f, 1);
+  gC2.fillRoundedRect(19, 35, 7, 5, 2);
+
+  // Brazo trasero (izquierdo) estirado ALTO agarrando corteza arriba
+  gC2.lineStyle(3.5, 0xbe8b68, 1);
+  gC2.beginPath();
+  gC2.moveTo(15, 16);
+  gC2.lineTo(21, 10);
+  gC2.lineTo(26, 7);
+  gC2.strokePath();
+  gC2.fillStyle(0xbe8b68, 1);
+  gC2.fillCircle(26, 7, 3.5);
+  gC2.fillRect(27, 5, 2.5, 4);
+
+  // Camisa escolar blanca (ligero rebote vertical de 1px por el paso de trepada)
+  gC2.fillStyle(0xf8f9fa, 1);
+  gC2.fillRoundedRect(9, 14, 14, 13, 3);
+  gC2.fillStyle(0xd0d5dd, 1);
+  gC2.fillRect(14, 14, 4, 3);
+
+  // Brazo delantero (derecho) flexionado a media altura haciendo palanca hacia arriba
+  gC2.lineStyle(4, 0xd7a17c, 1);
+  gC2.beginPath();
+  gC2.moveTo(18, 16);
+  gC2.lineTo(22, 21);
+  gC2.lineTo(25, 23);
+  gC2.strokePath();
+  gC2.fillStyle(0xd7a17c, 1);
+  gC2.fillCircle(25, 23, 3.8);
+  gC2.fillRect(26, 21, 3, 4.5);
+
+  // Cabeza del chamito (sube 1px con el impulso)
+  gC2.fillStyle(0xd7a17c, 1);
+  gC2.fillCircle(17, 9, 7.5);
+  gC2.fillStyle(0x1f1f1f, 1);
+  gC2.fillCircle(16, 5, 7);
+  gC2.fillCircle(20, 6, 5.5);
+  gC2.fillCircle(12, 7, 5);
+  gC2.fillTriangle(19, 3, 24, 1, 21, 6);
+
+  // Orejita
+  gC2.fillStyle(0xd7a17c, 1);
+  gC2.fillCircle(9, 9, 2.5);
 
   // Ojo alegre
-  gC.fillStyle(0xffffff, 1);
-  gC.fillCircle(20, 9, 2.5);
-  gC.fillStyle(0x000000, 1);
-  gC.fillCircle(21, 9, 1.4);
+  gC2.fillStyle(0xffffff, 1);
+  gC2.fillCircle(19, 8, 2.5);
+  gC2.fillStyle(0x111111, 1);
+  gC2.fillCircle(20, 7.5, 1.4);
+  gC2.fillStyle(0xffffff, 1);
+  gC2.fillRect(20, 7, 1, 1);
 
   // Sonrisa
-  gC.lineStyle(1.4, 0x5d4037, 1);
-  gC.beginPath();
-  gC.arc(20, 13, 2.5, 0.2, Math.PI * 0.9, false);
-  gC.strokePath();
+  gC2.lineStyle(1.4, 0x5d4037, 1);
+  gC2.beginPath();
+  gC2.arc(19, 12, 2.5, 0.2, Math.PI * 0.9, false);
+  gC2.strokePath();
 
-  gC.generateTexture('tex_chamito', 38, 46);
-  gC.destroy();
+  gC2.generateTexture('tex_chamito_climb2', 38, 46);
+  gC2.destroy();
 
-  // 2. Chamito golpeado / cayendo (Ojos X X, boca en O de susto)
+  // 2. Chamito golpeado / cayendo (Sin bolso, brazos abiertos en susto, ojos X X, boca en O)
   const gCH = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Piernas abiertas pataleando
   gCH.fillStyle(0x1a237e, 1);
-  gCH.fillRect(11, 27, 6, 12);
-  gCH.fillRect(19, 27, 6, 12);
+  gCH.fillRect(9, 27, 6, 11);
+  gCH.fillRect(21, 27, 6, 11);
   gCH.fillStyle(0x4e342e, 1);
-  gCH.fillRect(10, 38, 7, 5);
-  gCH.fillRect(19, 38, 7, 5);
+  gCH.fillRect(7, 37, 7, 5);
+  gCH.fillRect(22, 37, 7, 5);
 
-  gCH.fillStyle(0xf5f5f5, 1);
+  // Camisa escolar blanca limpia (sin bolso)
+  gCH.fillStyle(0xf8f9fa, 1);
   gCH.fillRoundedRect(10, 16, 16, 13, 3);
 
-  // Morral tricolor
-  gCH.fillStyle(0xffd600, 1);
-  gCH.fillRect(2, 17, 8, 4);
-  gCH.fillStyle(0x1565c0, 1);
-  gCH.fillRect(2, 21, 8, 4);
-  gCH.fillStyle(0xffffff, 1);
-  gCH.fillRect(4, 22, 1.5, 1.5);
-  gCH.fillRect(7, 22, 1.5, 1.5);
-  gCH.fillStyle(0xd32f2f, 1);
-  gCH.fillRect(2, 25, 8, 4);
-
-  // Brazos abiertos
+  // Brazos abiertos de susto
   gCH.fillStyle(0xd7a17c, 1);
-  gCH.fillCircle(27, 16, 4);
-  gCH.fillCircle(8, 16, 4);
+  gCH.fillCircle(28, 16, 4);
+  gCH.fillCircle(7, 16, 4);
 
   // Cabeza
   gCH.fillStyle(0xd7a17c, 1);
   gCH.fillCircle(18, 10, 8);
-  gCH.fillStyle(0x212121, 1);
+  gCH.fillStyle(0x1f1f1f, 1);
   gCH.fillCircle(17, 6, 7.5);
   gCH.fillCircle(21, 7, 5.5);
   gCH.fillCircle(13, 8, 5.5);
@@ -921,8 +1002,10 @@ function startFreshGame() {
   chamito.isDying = false;
   chamito.deathVx = 0;
   chamito.deathVy = 0;
+  chamito.climbAnimTimer = 0;
+  chamito.climbFrame = 0;
   if (chamito.sprite) {
-    chamito.sprite.setTexture('tex_chamito').setRotation(0).setPosition(chamito.x, chamito.y).setAlpha(1);
+    chamito.sprite.setTexture('tex_chamito_climb1').setRotation(0).setAngle(0).setPosition(chamito.x, chamito.y).setAlpha(1);
     chamito.sprite.clearTint();
   }
 
@@ -959,6 +1042,33 @@ function handlePlayerInput(dt) {
 
   chamito.sprite.setFlipX(chamito.side === 1);
   chamito.sprite.setPosition(chamito.x, chamito.y);
+
+  // Inclinación dinámica de trepador al saltar entre troncos
+  const isJumping = Math.abs(chamito.targetX - chamito.x) > 4;
+  if (isJumping) {
+    const jumpDir = (chamito.targetX > chamito.x) ? 1 : -1;
+    chamito.sprite.setAngle(jumpDir * 12);
+  } else {
+    chamito.sprite.setAngle(0);
+  }
+
+  // Animación de trepada activa alternando brazos y piernas (estilo Mono de Movilnet)
+  let animRate = 3.2; // Ritmo constante con el avance de la mata
+  if (held.P1_U) {
+    animRate = 9.5; // Trepada ágil y vigorosa al pulsar arriba
+  } else if (held.P1_D) {
+    animRate = 5.0; // Deslizamiento
+  } else if (isJumping) {
+    animRate = 8.0; // Salto entre troncos
+  }
+
+  chamito.climbAnimTimer += dt * animRate;
+  if (chamito.climbAnimTimer >= 1.0) {
+    chamito.climbAnimTimer -= 1.0;
+    chamito.climbFrame = (chamito.climbFrame === 0) ? 1 : 0;
+    const currentFrameTex = (chamito.climbFrame === 0) ? 'tex_chamito_climb1' : 'tex_chamito_climb2';
+    chamito.sprite.setTexture(currentFrameTex);
+  }
 
   if (invulTimer > 0) {
     invulTimer -= dt;
