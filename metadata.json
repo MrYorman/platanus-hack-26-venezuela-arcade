@@ -1,5 +1,5 @@
 {
-  "game_name": "Mono Vergatario",
-  "description": "Recreación del clásico juego de los celulares Vergatarios en Venezuela. Escala 4 troncos de bambú esquivando hormigas y comiendo bananas.",
-  "player_mode": "single_player"
+  "game_name": "Chamito Intergaláctico",
+  "description": "Un chamito venezolano con su morral tricolor escolar trepa una mata de mango gigante que llega hasta el espacio exterior. Esquiva hormigas, guacamayas, cohetes y agujeros negros mientras recolecta mangos jugosos. Modo 1 o 2 jugadores cooperativo.",
+  "player_mode": "two_player"
 }

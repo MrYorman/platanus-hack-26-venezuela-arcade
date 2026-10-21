@@ -1,23 +1,23 @@
 // Platanus Hack 26 — Caracas Arcade Edition
-// MONO VERGATARIO: 4 BAMBÚS
-// Recreación en Phaser 3 del clásico juego de celular venezolano
+// CHAMITO INTERGALÁCTICO
+// De la mata de mango al espacio exterior con el morral tricolor
 
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 600;
 
-// Mapeo obligatorio de controles para el mueble arcade físico.
+// Mapeo obligatorio de la máquina de arcade física.
 // DO NOT replace existing keys — they match the physical arcade cabinet wiring.
 const CABINET_KEYS = {
-  P1_U: ['w', 'ArrowUp'],
-  P1_D: ['s', 'ArrowDown'],
-  P1_L: ['a', 'ArrowLeft'],
-  P1_R: ['d', 'ArrowRight'],
+  P1_U: ['w'],
+  P1_D: ['s'],
+  P1_L: ['a'],
+  P1_R: ['d'],
   P1_1: ['u', 'p', ' '],
   P1_2: ['i'],
   P1_3: ['o'],
   P1_4: ['j'],
   P1_5: ['k'],
-  P1_6: ['l', 'r'],
+  P1_6: ['l'],
   P2_U: ['ArrowUp'],
   P2_D: ['ArrowDown'],
   P2_L: ['ArrowLeft'],
@@ -49,10 +49,7 @@ window.addEventListener('keydown', (e) => {
     if (!held[code]) justPressed[code] = true;
     held[code] = true;
   }
-  // Atajo directo para reiniciar con R
-  if (norm === 'r') {
-    justPressed.RESET = true;
-  }
+  if (norm === 'r') justPressed.RESET = true;
 });
 
 window.addEventListener('keyup', (e) => {
@@ -61,7 +58,7 @@ window.addEventListener('keyup', (e) => {
   if (code) held[code] = false;
 });
 
-// --- Almacenamiento persistente (Platanus Arcade Storage o LocalStorage) ---
+// Storage
 function getStorage() {
   if (window.platanusArcadeStorage) return window.platanusArcadeStorage;
   return {
@@ -69,19 +66,15 @@ function getStorage() {
       try {
         const raw = window.localStorage.getItem(key);
         return raw === null ? { found: false, value: null } : { found: true, value: JSON.parse(raw) };
-      } catch (err) {
-        return { found: false, value: null };
-      }
+      } catch (e) { return { found: false, value: null }; }
     },
     async set(key, value) {
-      try {
-        window.localStorage.setItem(key, JSON.stringify(value));
-      } catch (err) {}
+      try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
     },
   };
 }
 
-// --- Audio Sintetizado (Web Audio API sin archivos externos) ---
+// Audio Sintetizado
 class ArcadeAudio {
   constructor(soundManager) {
     this.sound = soundManager;
@@ -111,47 +104,32 @@ class ArcadeAudio {
     } catch (e) {}
   }
 
-  jump() {
-    this.playTone(280, 'sine', 0.1, 0.2, 560);
-  }
-
-  munch() {
-    this.playTone(620, 'square', 0.08, 0.15, 950);
-  }
-
+  jump() { this.playTone(320, 'sine', 0.09, 0.2, 600); }
+  munch() { this.playTone(550, 'square', 0.08, 0.16, 920); }
   golden() {
     [440, 554, 659, 880, 1108].forEach((f, i) => {
-      setTimeout(() => this.playTone(f, 'triangle', 0.16, 0.22), i * 55);
+      setTimeout(() => this.playTone(f, 'triangle', 0.15, 0.22), i * 50);
     });
   }
+  hurt() { this.playTone(180, 'sawtooth', 0.22, 0.3, 50); }
+  smash() { this.playTone(480, 'sawtooth', 0.1, 0.25, 120); }
 
-  hurt() {
-    this.playTone(190, 'sawtooth', 0.22, 0.3, 60);
-  }
-
-  smash() {
-    this.playTone(450, 'sawtooth', 0.1, 0.25, 120);
-  }
-
-  monkeyFall() {
-    // Salto cómico sorprendido hacia arriba y silbido descendente al caer del bambú
-    this.playTone(380, 'sine', 0.15, 0.35, 780);
-    setTimeout(() => {
-      this.playTone(640, 'sawtooth', 0.65, 0.3, 70);
-    }, 140);
+  fall() {
+    this.playTone(400, 'sine', 0.15, 0.35, 800);
+    setTimeout(() => this.playTone(600, 'sawtooth', 0.65, 0.3, 60), 130);
   }
 
   gameOver() {
     [380, 320, 260, 200, 140].forEach((f, i) => {
-      setTimeout(() => this.playTone(f, 'sawtooth', 0.28, 0.28, f * 0.8), i * 110);
+      setTimeout(() => this.playTone(f, 'sawtooth', 0.26, 0.26, f * 0.8), i * 110);
     });
   }
 
   startBGM() {
     if (this.bgmTimer) return;
     this.bgmStep = 0;
-    const bass = [130, 130, 164, 164, 146, 146, 196, 174];
-    const lead = [523, 659, 784, 659, 587, 698, 784, 880];
+    const bass = [140, 140, 175, 175, 155, 155, 210, 185];
+    const lead = [523, 659, 784, 880, 784, 659, 587, 698];
     const tick = () => {
       if (!this.muted && this.ctx) {
         this.playTone(bass[this.bgmStep % bass.length], 'triangle', 0.1, 0.06);
@@ -160,7 +138,7 @@ class ArcadeAudio {
         }
       }
       this.bgmStep++;
-      this.bgmTimer = setTimeout(tick, 180);
+      this.bgmTimer = setTimeout(tick, 170);
     };
     tick();
   }
@@ -173,10 +151,10 @@ class ArcadeAudio {
   }
 }
 
-// --- CONSTANTES DEL JUEGO ---
-const NUM_BAMBOOS = 4;
-const BAMBOO_X = [260, 350, 450, 540]; // 4 Bambús en el centro de la pantalla arcade
-const OFFSET_X = 22; // Distancia a la izq o der del tallo
+// Configuración de la mata de mango (4 troncos)
+const NUM_TRUNKS = 4;
+const TRUNK_X = [260, 350, 450, 540];
+const OFFSET_X = 22;
 
 const STATE_MENU = 0;
 const STATE_PLAYING = 1;
@@ -184,22 +162,17 @@ const STATE_PAUSED = 2;
 const STATE_DYING = 3;
 const STATE_GAMEOVER = 4;
 
-// --- CONFIGURACIÓN DE PHASER 3 ---
 const config = {
   type: Phaser.AUTO,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   parent: 'game-root',
-  backgroundColor: '#030f07',
+  backgroundColor: '#050a12',
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: {
-    preload,
-    create,
-    update,
-  },
+  scene: { preload, create, update },
 };
 
 new Phaser.Game(config);
@@ -209,345 +182,365 @@ function preload() {}
 let sfx;
 let gameState = STATE_MENU;
 let score = 0;
-let bananasCount = 0;
-let lives = 3;
+let mangosCount = 0;
 let altitude = 0;
 let highScore = 0;
 let superTimer = 0;
-let invulTimer = 0;
-let combo = 0;
-let comboTimer = 0;
-let scrollSpeed = 2.0;
+let scrollSpeed = 2.2;
+let p2Active = false; // Se activa automáticamente si P2 toca las flechas
 
-// Objetos del juego
-let monkey = {
-  bamboo: 1,
+// Los dos jugadores (Chamito P1 y Compinche P2)
+let p1 = {
+  active: true,
+  trunk: 1,
   side: 1,
-  x: BAMBOO_X[1] + OFFSET_X,
-  targetX: BAMBOO_X[1] + OFFSET_X,
+  x: TRUNK_X[1] + OFFSET_X,
+  targetX: TRUNK_X[1] + OFFSET_X,
   y: 430,
   targetY: 430,
-  sprite: null,
+  lives: 3,
+  invul: 0,
   isDying: false,
   deathVx: 0,
   deathVy: 0,
-  animTick: 0,
+  sprite: null,
 };
 
-let ants = [];
-let bananas = [];
-let particles = [];
-let antSpawnTimer = 0;
-let bananaSpawnTimer = 0;
+let p2 = {
+  active: false,
+  trunk: 2,
+  side: -1,
+  x: TRUNK_X[2] - OFFSET_X,
+  targetX: TRUNK_X[2] - OFFSET_X,
+  y: 470,
+  targetY: 470,
+  lives: 3,
+  invul: 0,
+  isDying: false,
+  deathVx: 0,
+  deathVy: 0,
+  sprite: null,
+};
 
-// Referencias visuales de la UI
+let enemies = [];
+let mangos = [];
+let bgProps = [];
+let stars = [];
+
 let uiTexts = {};
-let overlayGraphics;
-let bgTileGraphics;
+let backdropGraphics;
+let blackHoleGraphic;
 
 function create() {
   sfx = new ArcadeAudio(this.sound);
 
-  // Cargar High Score previo
-  getStorage().get('mono_high_score').then((res) => {
-    if (res.found && typeof res.value === 'number') {
-      highScore = res.value;
-    }
+  getStorage().get('chamito_high_score').then((res) => {
+    if (res.found && typeof res.value === 'number') highScore = res.value;
   });
 
-  // Generar texturas de forma 100% procedimental con Phaser Graphics
-  generateProceduralTextures(this);
+  generateTextures(this);
 
-  // 1. Fondo de Selva
-  this.add.rectangle(400, 300, 800, 600, 0x051b0e);
-  drawJungleBackdrop(this);
+  // 1. Fondos dinámicos (Barrio -> Cielo -> Atmósfera -> Espacio)
+  backdropGraphics = this.add.graphics().setDepth(1);
+  createStars(this);
 
-  // 2. Los 4 Bambús
-  drawBamboos(this);
+  // 2. Elementos del mundo (Casas del barrio, Doña asomada, Satélite Simón Bolívar, Agujero negro)
+  createWorldProps(this);
 
-  // 3. Sprite del Mono
-  monkey.sprite = this.add.sprite(monkey.x, monkey.y, 'tex_monkey').setDepth(20);
+  // 3. Troncos de la Mata de Mango
+  drawMangoTree(this);
 
-  // 4. Grupo de HUD y Paneles laterales estilo CRT
+  // 4. Sprites de los Chamitos
+  p1.sprite = this.add.sprite(p1.x, p1.y, 'tex_chamito_p1').setDepth(20);
+  p2.sprite = this.add.sprite(p2.x, p2.y, 'tex_chamito_p2').setDepth(20).setVisible(false);
+
+  // 5. HUD y Controles
   createArcadeHUD(this);
 
-  // 5. Capa CRT y Viñeta
+  // 6. Filtro de líneas CRT
   drawCRTFilter(this);
 
-  // Inicializar estado del menú
   showMenuUI(true);
 }
 
 // --- GENERACIÓN DE TEXTURAS PROCEDURALES (CERO ASSETS EXTERNOS) ---
-function generateProceduralTextures(scene) {
-  // 1. Textura del Mono
+function generateTextures(scene) {
+  // 1. Chamito P1 con Morral Tricolor
+  const g1 = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Franela blanca
+  g1.fillStyle(0xffffff, 1);
+  g1.fillRect(8, 18, 16, 18);
+  // Cabeza y pelo
+  g1.fillStyle(0x3e2723, 1);
+  g1.fillCircle(16, 9, 8); // Pelo rizado
+  g1.fillStyle(0xd7a15c, 1);
+  g1.fillCircle(16, 11, 7); // Cara
+  g1.fillStyle(0x212121, 1);
+  g1.fillCircle(19, 10, 1.5); // Ojo
+  // Morral Escolar Tricolor en la espalda
+  g1.fillStyle(0xffd600, 1); // Amarillo
+  g1.fillRect(1, 18, 7, 5);
+  g1.fillStyle(0x0055b8, 1); // Azul
+  g1.fillRect(1, 23, 7, 5);
+  g1.fillStyle(0xd50000, 1); // Rojo
+  g1.fillRect(1, 28, 7, 5);
+  // Short azul escolar
+  g1.fillStyle(0x1a237e, 1);
+  g1.fillRect(10, 36, 12, 8);
+  g1.generateTexture('tex_chamito_p1', 32, 46);
+  g1.destroy();
+
+  // 2. Chamita / Compinche P2 con Gorra Tricolor
+  const g2 = scene.make.graphics({ x: 0, y: 0, add: false });
+  g2.fillStyle(0xffea00, 1); // Franela amarilla
+  g2.fillRect(8, 18, 16, 18);
+  g2.fillStyle(0xd7a15c, 1);
+  g2.fillCircle(16, 11, 7);
+  // Gorra tricolor
+  g2.fillStyle(0xffd600, 1); g2.fillRect(9, 4, 14, 4);
+  g2.fillStyle(0x0055b8, 1); g2.fillRect(9, 8, 14, 3);
+  g2.fillStyle(0xd50000, 1); g2.fillRect(15, 8, 8, 3); // Visera
+  g2.fillStyle(0x212121, 1);
+  g2.fillCircle(19, 11, 1.5);
+  // Morralito
+  g2.fillStyle(0xd50000, 1);
+  g2.fillRect(1, 20, 7, 12);
+  g2.fillStyle(0x263238, 1);
+  g2.fillRect(10, 36, 12, 8);
+  g2.generateTexture('tex_chamito_p2', 32, 46);
+  g2.destroy();
+
+  // 3. Chamito golpeado / cayendo (X X)
+  const gH = scene.make.graphics({ x: 0, y: 0, add: false });
+  gH.fillStyle(0xffffff, 1);
+  gH.fillRect(8, 18, 16, 18);
+  gH.fillStyle(0xd7a15c, 1);
+  gH.fillCircle(16, 11, 7);
+  // Ojo X
+  gH.lineStyle(1.5, 0x000000, 1);
+  gH.beginPath();
+  gH.moveTo(17, 8); gH.lineTo(21, 12);
+  gH.moveTo(21, 8); gH.lineTo(17, 12);
+  gH.strokePath();
+  // Boca "O"
+  gH.fillStyle(0x3e2723, 1);
+  gH.fillCircle(18, 15, 2.5);
+  // Morral
+  gH.fillStyle(0xffd600, 1); gH.fillRect(1, 18, 7, 4);
+  gH.fillStyle(0x0055b8, 1); gH.fillRect(1, 22, 7, 4);
+  gH.fillStyle(0xd50000, 1); gH.fillRect(1, 26, 7, 4);
+  gH.generateTexture('tex_chamito_hurt', 32, 46);
+  gH.destroy();
+
+  // 4. Mango Maduro
   const gM = scene.make.graphics({ x: 0, y: 0, add: false });
-  // Torso
-  gM.fillStyle(0x795548, 1);
-  gM.fillEllipse(16, 20, 18, 22);
-  // Pancita
-  gM.fillStyle(0xd7ccc8, 1);
-  gM.fillEllipse(18, 22, 12, 14);
-  // Cabeza
-  gM.fillStyle(0x795548, 1);
-  gM.fillCircle(16, 10, 11);
-  // Hocico
-  gM.fillStyle(0xd7ccc8, 1);
-  gM.fillEllipse(18, 12, 12, 9);
-  // Orejas
-  gM.fillStyle(0x795548, 1);
-  gM.fillCircle(6, 6, 4.5);
-  gM.fillCircle(24, 6, 4.5);
-  gM.fillStyle(0xd7ccc8, 1);
-  gM.fillCircle(6, 6, 2.5);
-  gM.fillCircle(24, 6, 2.5);
-  // Ojos
-  gM.fillStyle(0xffffff, 1);
-  gM.fillCircle(15, 9, 2.5);
-  gM.fillCircle(21, 9, 2.5);
-  gM.fillStyle(0x000000, 1);
-  gM.fillCircle(16, 9, 1.4);
-  gM.fillCircle(22, 9, 1.4);
-  // Cola
-  gM.lineStyle(3.5, 0x795548, 1);
-  gM.beginPath();
-  gM.moveTo(8, 26);
-  gM.lineTo(2, 33);
-  gM.lineTo(6, 38);
-  gM.strokePath();
-  gM.generateTexture('tex_monkey', 36, 44);
+  gM.fillStyle(0xd50000, 1);
+  gM.fillEllipse(11, 13, 10, 13);
+  gM.fillStyle(0xffd600, 1);
+  gM.fillEllipse(9, 11, 7, 10);
+  gM.fillStyle(0x4caf50, 1);
+  gM.fillRect(10, 1, 2, 4); // Tallo
+  gM.generateTexture('tex_mango', 22, 26);
   gM.destroy();
 
-  // 2. Mono golpeado / cayendo (X X)
-  const gMH = scene.make.graphics({ x: 0, y: 0, add: false });
-  gMH.fillStyle(0x8d6e63, 1);
-  gMH.fillEllipse(16, 20, 18, 22);
-  gMH.fillStyle(0xd7ccc8, 1);
-  gMH.fillEllipse(18, 22, 12, 14);
-  gMH.fillStyle(0x8d6e63, 1);
-  gMH.fillCircle(16, 10, 11);
-  gMH.fillStyle(0xd7ccc8, 1);
-  gMH.fillEllipse(18, 13, 12, 9);
-  // Ojos X X
-  gMH.lineStyle(1.8, 0x000000, 1);
-  gMH.beginPath();
-  gMH.moveTo(13, 7); gMH.lineTo(17, 11);
-  gMH.moveTo(17, 7); gMH.lineTo(13, 11);
-  gMH.moveTo(19, 7); gMH.lineTo(23, 11);
-  gMH.moveTo(23, 7); gMH.lineTo(19, 11);
-  gMH.strokePath();
-  // Boca abierta "O"
-  gMH.fillStyle(0x3e2723, 1);
-  gMH.fillCircle(18, 15, 2.5);
-  gMH.generateTexture('tex_monkey_hurt', 36, 44);
-  gMH.destroy();
+  // 5. Mango de Oro (Invencible)
+  const gMO = scene.make.graphics({ x: 0, y: 0, add: false });
+  gMO.fillStyle(0xffea00, 1);
+  gMO.fillCircle(12, 12, 11);
+  gMO.fillStyle(0xffffff, 0.9);
+  gMO.fillCircle(9, 8, 3.5);
+  gMO.generateTexture('tex_mango_oro', 24, 24);
+  gMO.destroy();
 
-  // 3. Hormiga Roja
-  const gAR = scene.make.graphics({ x: 0, y: 0, add: false });
-  gAR.fillStyle(0xd32f2f, 1);
-  gAR.fillEllipse(10, 6, 7, 10); // Abdomen trasero
-  gAR.fillEllipse(10, 13, 5, 6);  // Tórax
-  gAR.fillStyle(0xb71c1c, 1);
-  gAR.fillCircle(10, 19, 4.5);   // Cabeza
-  // Patas
-  gAR.lineStyle(1.4, 0xd32f2f, 1);
-  gAR.beginPath();
-  gAR.moveTo(4, 9); gAR.lineTo(16, 9);
-  gAR.moveTo(3, 13); gAR.lineTo(17, 13);
-  gAR.moveTo(4, 17); gAR.lineTo(16, 17);
-  gAR.strokePath();
-  gAR.generateTexture('tex_ant_red', 20, 26);
-  gAR.destroy();
+  // 6. Hormiga Brava (Nivel 1)
+  const gA = scene.make.graphics({ x: 0, y: 0, add: false });
+  gA.fillStyle(0xc62828, 1);
+  gA.fillEllipse(10, 6, 7, 9);
+  gA.fillEllipse(10, 13, 5, 5);
+  gA.fillCircle(10, 18, 4);
+  gA.lineStyle(1.4, 0xc62828, 1);
+  gA.beginPath();
+  gA.moveTo(4, 9); gA.lineTo(16, 9);
+  gA.moveTo(3, 13); gA.lineTo(17, 13);
+  gA.moveTo(4, 17); gA.lineTo(16, 17);
+  gA.strokePath();
+  gA.generateTexture('tex_ant', 20, 24);
+  gA.destroy();
 
-  // 4. Hormiga Negra Guerrera
-  const gAB = scene.make.graphics({ x: 0, y: 0, add: false });
-  gAB.fillStyle(0x212121, 1);
-  gAB.fillEllipse(11, 7, 8, 11);
-  gAB.fillEllipse(11, 14, 6, 7);
-  gAB.fillStyle(0x000000, 1);
-  gAB.fillCircle(11, 21, 5);
-  gAB.lineStyle(1.5, 0x333333, 1);
-  gAB.beginPath();
-  gAB.moveTo(3, 10); gAB.lineTo(19, 10);
-  gAB.moveTo(2, 14); gAB.lineTo(20, 14);
-  gAB.moveTo(3, 19); gAB.lineTo(19, 19);
-  gAB.strokePath();
-  gAB.generateTexture('tex_ant_black', 22, 28);
-  gAB.destroy();
+  // 7. Guacamaya de Caracas (Nivel 2)
+  const gG = scene.make.graphics({ x: 0, y: 0, add: false });
+  gG.fillStyle(0xd50000, 1); // Rojo
+  gG.fillTriangle(14, 0, 4, 18, 24, 18);
+  gG.fillStyle(0xffd600, 1); // Amarillo
+  gG.fillRect(7, 12, 14, 6);
+  gG.fillStyle(0x0055b8, 1); // Azul
+  gG.fillRect(9, 18, 10, 8);
+  gG.generateTexture('tex_guacamaya', 28, 28);
+  gG.destroy();
 
-  // 5. Hormiga de Fuego Bala
-  const gAF = scene.make.graphics({ x: 0, y: 0, add: false });
-  gAF.fillStyle(0xff6d00, 1);
-  gAF.fillEllipse(10, 6, 7, 10);
-  gAF.fillEllipse(10, 13, 5, 6);
-  gAF.fillStyle(0xdd2c00, 1);
-  gAF.fillCircle(10, 19, 4.5);
-  gAF.lineStyle(1.4, 0xff9100, 1);
-  gAF.beginPath();
-  gAF.moveTo(4, 9); gAF.lineTo(16, 9);
-  gAF.moveTo(3, 13); gAF.lineTo(17, 13);
-  gAF.moveTo(4, 17); gAF.lineTo(16, 17);
-  gAF.strokePath();
-  gAF.generateTexture('tex_ant_fire', 20, 26);
-  gAF.destroy();
+  // 8. Cohete Espacial (Nivel 3)
+  const gR = scene.make.graphics({ x: 0, y: 0, add: false });
+  gR.fillStyle(0xe0e0e0, 1);
+  gR.fillRect(8, 6, 10, 18);
+  gR.fillStyle(0xd50000, 1);
+  gR.fillTriangle(13, 0, 8, 6, 18, 6); // Punta
+  gR.fillStyle(0xff6d00, 1);
+  gR.fillTriangle(13, 28, 9, 24, 17, 24); // Fuego
+  gR.generateTexture('tex_rocket', 26, 30);
+  gR.destroy();
 
-  // 6. Banana
-  const gB = scene.make.graphics({ x: 0, y: 0, add: false });
-  gB.fillStyle(0xffd600, 1);
-  gB.beginPath();
-  gB.moveTo(2, 14);
-  gB.arc(10, 10, 9, Math.PI * 0.7, Math.PI * 1.8, false);
-  gB.lineTo(18, 4);
-  gB.arc(10, 12, 11, Math.PI * 1.8, Math.PI * 0.7, true);
-  gB.closePath();
-  gB.fillPath();
-  gB.fillStyle(0x388e3c, 1);
-  gB.fillRect(1, 13, 2, 3);
-  gB.fillStyle(0x5d4037, 1);
-  gB.fillRect(17, 3, 2, 2);
-  gB.generateTexture('tex_banana', 22, 20);
-  gB.destroy();
+  // 9. Meteorito Cósmico (Nivel 4)
+  const gMet = scene.make.graphics({ x: 0, y: 0, add: false });
+  gMet.fillStyle(0xbf360c, 1);
+  gMet.fillCircle(12, 12, 10);
+  gMet.fillStyle(0xff9100, 1);
+  gMet.fillCircle(11, 10, 6);
+  gMet.fillStyle(0xffff00, 1);
+  gMet.fillCircle(10, 9, 3);
+  gMet.generateTexture('tex_meteor', 24, 24);
+  gMet.destroy();
 
-  // 7. Banana Dorada (Super)
-  const gBG = scene.make.graphics({ x: 0, y: 0, add: false });
-  gBG.fillStyle(0xffeb3b, 1);
-  gBG.fillCircle(12, 12, 11);
-  gBG.fillStyle(0xffc107, 1);
-  gBG.fillCircle(12, 12, 8);
-  gBG.fillStyle(0xffffff, 1);
-  gBG.fillCircle(10, 9, 3);
-  gBG.generateTexture('tex_banana_gold', 24, 24);
-  gBG.destroy();
+  // 10. Doña Asomada en la ventana (La vieja del barrio)
+  const gD = scene.make.graphics({ x: 0, y: 0, add: false });
+  gD.fillStyle(0xb0bec5, 1);
+  gD.fillCircle(14, 8, 7); // Rulos / pelo gris
+  gD.fillStyle(0xffcc80, 1);
+  gD.fillCircle(14, 10, 6); // Cara
+  gD.fillStyle(0xe91e63, 1);
+  gD.fillRect(6, 17, 16, 13); // Bata rosada
+  gD.generateTexture('tex_dona', 28, 30);
+  gD.destroy();
 }
 
-// --- ESCENARIO DE SELVA Y BAMBÚS ---
-function drawJungleBackdrop(scene) {
-  const g = scene.add.graphics().setDepth(1);
-  // Árboles lejanos
-  g.fillStyle(0x0c311a, 0.7);
-  g.fillCircle(120, 160, 120);
-  g.fillCircle(280, 220, 140);
-  g.fillCircle(520, 200, 150);
-  g.fillCircle(680, 170, 130);
-
-  // Lianas laterales
-  g.lineStyle(3, 0x144d27, 0.8);
-  g.beginPath();
-  g.moveTo(40, 0); g.lineTo(60, 600);
-  g.moveTo(760, 0); g.lineTo(740, 600);
-  g.strokePath();
-
-  // Hojas superiores
-  g.fillStyle(0x195b2e, 0.9);
-  g.fillTriangle(0, 0, 180, 0, 0, 110);
-  g.fillTriangle(800, 0, 620, 0, 800, 110);
+function createStars(scene) {
+  for (let i = 0; i < 70; i++) {
+    const star = scene.add.rectangle(
+      Phaser.Math.Between(20, GAME_WIDTH - 20),
+      Phaser.Math.Between(0, GAME_HEIGHT),
+      Phaser.Math.Between(2, 3.5),
+      Phaser.Math.Between(2, 3.5),
+      0xffffff
+    ).setDepth(2).setAlpha(0);
+    stars.push(star);
+  }
 }
 
-function drawBamboos(scene) {
+function createWorldProps(scene) {
+  // Satélite Simón Bolívar (se activa a gran altura)
+  bgProps.satellite = scene.add.container(680, -100).setDepth(3);
+  const sBody = scene.add.rectangle(0, 0, 24, 20, 0xb0bec5);
+  const sWing1 = scene.add.rectangle(-24, 0, 22, 10, 0x0055b8);
+  const sWing2 = scene.add.rectangle(24, 0, 22, 10, 0x0055b8);
+  bgProps.satellite.add([sBody, sWing1, sWing2]);
+
+  // Agujero Negro giratorio
+  bgProps.blackHole = scene.add.container(400, -200).setDepth(2);
+  const disc = scene.add.circle(0, 0, 48, 0xff9800, 0.7);
+  const hole = scene.add.circle(0, 0, 36, 0x000000, 1.0);
+  bgProps.blackHole.add([disc, hole]);
+}
+
+function drawMangoTree(scene) {
   const g = scene.add.graphics().setDepth(5);
-  const bambooWidth = 22;
+  const trunkWidth = 24;
 
-  BAMBOO_X.forEach((bx, idx) => {
-    // Sombra del tronco
+  TRUNK_X.forEach((tx) => {
+    // Sombra
     g.fillStyle(0x010803, 0.45);
-    g.fillRect(bx - bambooWidth / 2 + 4, 0, bambooWidth, GAME_HEIGHT);
+    g.fillRect(tx - trunkWidth / 2 + 4, 0, trunkWidth, GAME_HEIGHT);
 
-    // Tallo principal verde degradado
-    g.fillStyle(0x2e8544, 1);
-    g.fillRect(bx - bambooWidth / 2, 0, bambooWidth, GAME_HEIGHT);
+    // Tallo leñoso de mata de mango
+    g.fillStyle(0x5d4037, 1);
+    g.fillRect(tx - trunkWidth / 2, 0, trunkWidth, GAME_HEIGHT);
 
-    g.fillStyle(0x56b86b, 1);
-    g.fillRect(bx - bambooWidth / 2 + 4, 0, 7, GAME_HEIGHT);
+    g.fillStyle(0x8d6e63, 1);
+    g.fillRect(tx - trunkWidth / 2 + 3, 0, 6, GAME_HEIGHT);
 
-    // Nudos de bambú
-    g.fillStyle(0x1a5228, 1);
-    g.lineStyle(2, 0x82d992, 1);
-    for (let y = 30; y < GAME_HEIGHT; y += 75) {
-      g.fillEllipse(bx, y, bambooWidth + 3, 5);
-      g.strokeEllipse(bx, y, bambooWidth + 3, 5);
+    // Nudos y corteza
+    g.lineStyle(2, 0x3e2723, 1);
+    for (let y = 30; y < GAME_HEIGHT; y += 70) {
+      g.beginPath();
+      g.moveTo(tx - trunkWidth / 2, y);
+      g.lineTo(tx + trunkWidth / 2, y + 8);
+      g.strokePath();
     }
   });
 }
 
-// --- HUD Y PANELES CRT LATERALES ---
 function createArcadeHUD(scene) {
   const fontStyle = { fontFamily: 'monospace', fontSize: '13px', color: '#39ff6e' };
   const titleStyle = { fontFamily: 'monospace', fontSize: '12px', color: '#ffe600', fontStyle: 'bold' };
 
-  // Marco izquierdo de estadísticas
+  // Marco izquierdo: P1 y P2
   const gL = scene.add.graphics().setDepth(25);
-  gL.fillStyle(0x021107, 0.88);
+  gL.fillStyle(0x021107, 0.9);
   gL.lineStyle(2, 0x1fa347, 1);
   gL.fillRoundedRect(16, 16, 190, 568, 8);
   gL.strokeRoundedRect(16, 16, 190, 568, 8);
 
-  scene.add.text(111, 36, 'ESTADÍSTICAS', titleStyle).setOrigin(0.5).setDepth(26);
-  scene.add.text(28, 70, 'VIDAS:', fontStyle).setDepth(26);
-  uiTexts.lives = scene.add.text(28, 92, '❤️❤️❤️', { fontSize: '16px' }).setDepth(26);
+  scene.add.text(111, 36, 'CHAMITOS COOP', titleStyle).setOrigin(0.5).setDepth(26);
 
-  scene.add.text(28, 135, 'BANANAS:', fontStyle).setDepth(26);
-  uiTexts.bananas = scene.add.text(28, 155, '0 🍌', { fontFamily: 'monospace', fontSize: '15px', color: '#ffe600', fontStyle: 'bold' }).setDepth(26);
+  scene.add.text(28, 65, 'P1 VIDAS:', fontStyle).setDepth(26);
+  uiTexts.p1Lives = scene.add.text(28, 85, '❤️❤️❤️', { fontSize: '15px' }).setDepth(26);
 
-  scene.add.text(28, 200, 'ALTURA:', fontStyle).setDepth(26);
-  uiTexts.altitude = scene.add.text(28, 220, '0 m', { fontFamily: 'monospace', fontSize: '15px', color: '#9affb6' }).setDepth(26);
+  scene.add.text(28, 120, 'P2 VIDAS:', fontStyle).setDepth(26);
+  uiTexts.p2Lives = scene.add.text(28, 140, 'PULSA FLECHA', { fontFamily: 'monospace', fontSize: '11px', color: '#888888' }).setDepth(26);
 
-  scene.add.text(28, 265, 'PUNTAJE:', fontStyle).setDepth(26);
-  uiTexts.score = scene.add.text(28, 285, '0', { fontFamily: 'monospace', fontSize: '17px', color: '#ffffff', fontStyle: 'bold' }).setDepth(26);
+  scene.add.text(28, 185, 'MANGOS:', fontStyle).setDepth(26);
+  uiTexts.mangos = scene.add.text(28, 205, '0 🥭', { fontFamily: 'monospace', fontSize: '16px', color: '#ffe600', fontStyle: 'bold' }).setDepth(26);
 
-  scene.add.text(28, 340, 'RÉCORD:', fontStyle).setDepth(26);
-  uiTexts.high = scene.add.text(28, 360, '0', { fontFamily: 'monospace', fontSize: '15px', color: '#ffe600' }).setDepth(26);
+  scene.add.text(28, 255, 'ALTURA:', fontStyle).setDepth(26);
+  uiTexts.altitude = scene.add.text(28, 275, '0 m', { fontFamily: 'monospace', fontSize: '16px', color: '#9affb6' }).setDepth(26);
 
-  // Marco derecho de controles
+  scene.add.text(28, 325, 'PUNTAJE:', fontStyle).setDepth(26);
+  uiTexts.score = scene.add.text(28, 345, '0', { fontFamily: 'monospace', fontSize: '18px', color: '#ffffff', fontStyle: 'bold' }).setDepth(26);
+
+  scene.add.text(28, 395, 'RÉCORD:', fontStyle).setDepth(26);
+  uiTexts.high = scene.add.text(28, 415, '0', { fontFamily: 'monospace', fontSize: '15px', color: '#ffe600' }).setDepth(26);
+
+  // Marco derecho: Mundos y controles
   const gR = scene.add.graphics().setDepth(25);
-  gR.fillStyle(0x021107, 0.88);
+  gR.fillStyle(0x021107, 0.9);
   gR.lineStyle(2, 0x1fa347, 1);
   gR.fillRoundedRect(594, 16, 190, 568, 8);
   gR.strokeRoundedRect(594, 16, 190, 568, 8);
 
-  scene.add.text(689, 36, 'CONTROLES', titleStyle).setOrigin(0.5).setDepth(26);
-  const helpLines = [
-    'W / ↑ :', 'Trepar rápido',
+  scene.add.text(689, 36, 'ZONA ACTUAL', titleStyle).setOrigin(0.5).setDepth(26);
+  uiTexts.zoneName = scene.add.text(689, 60, 'EL BARRIO', { fontFamily: 'monospace', fontSize: '12px', color: '#ff9800', fontStyle: 'bold' }).setOrigin(0.5).setDepth(26);
+
+  const controls = [
+    'P1 (WASD):', 'W: Subir | S: Bajar',
+    '', 'A: Izq | D: Der',
     '',
-    'S / ↓ :', 'Deslizarse',
+    'P2 (FLECHAS):', '↑: Subir | ↓: Bajar',
+    '', '←: Izq | →: Der',
     '',
-    'A / ← :', 'Izq / Cambiar',
+    'REGLA COOP:', '¡No se pueden',
+    '', 'sobrepasar!',
     '',
-    'D / → :', 'Der / Cambiar',
-    '',
-    'P :', 'Pausa',
-    '',
-    'R :', 'Reiniciar 0',
+    'P: Pausa | R: Reset', '',
   ];
-  let hy = 70;
-  for (let i = 0; i < helpLines.length; i += 2) {
-    scene.add.text(606, hy, helpLines[i], { fontFamily: 'monospace', fontSize: '11px', color: '#ffe600', fontStyle: 'bold' }).setDepth(26);
-    scene.add.text(606, hy + 16, helpLines[i + 1], { fontFamily: 'monospace', fontSize: '10px', color: '#9affb6' }).setDepth(26);
-    hy += 42;
+  let cy = 95;
+  for (let i = 0; i < controls.length; i += 2) {
+    scene.add.text(606, cy, controls[i], { fontFamily: 'monospace', fontSize: '10px', color: '#ffe600', fontStyle: 'bold' }).setDepth(26);
+    scene.add.text(606, cy + 14, controls[i + 1], { fontFamily: 'monospace', fontSize: '9px', color: '#9affb6' }).setDepth(26);
+    cy += 35;
   }
 
-  // Título superior central
-  uiTexts.titleHeader = scene.add.text(400, 24, 'MONO VERGATARIO', {
-    fontFamily: 'monospace',
-    fontSize: '18px',
-    color: '#ffe600',
-    fontStyle: 'bold',
+  // Título central
+  uiTexts.titleHeader = scene.add.text(400, 24, 'CHAMITO INTERGALÁCTICO', {
+    fontFamily: 'monospace', fontSize: '17px', color: '#ffe600', fontStyle: 'bold'
   }).setOrigin(0.5).setDepth(26);
 
-  // Mensaje de estado central (Inicio / Pausa / Game Over)
+  // Cartel central
   uiTexts.centerBox = scene.add.text(400, 290, '', {
-    fontFamily: 'monospace',
-    fontSize: '20px',
-    color: '#ffe600',
-    align: 'center',
-    backgroundColor: '#021107',
-    padding: { x: 20, y: 15 },
+    fontFamily: 'monospace', fontSize: '19px', color: '#ffe600', align: 'center', backgroundColor: '#021107', padding: { x: 20, y: 15 }
   }).setOrigin(0.5).setDepth(40).setVisible(false);
 }
 
 function drawCRTFilter(scene) {
   const g = scene.add.graphics().setDepth(99);
-  // Scanlines horizontales
-  g.lineStyle(1, 0x000000, 0.35);
+  g.lineStyle(1, 0x000000, 0.32);
   for (let y = 0; y < GAME_HEIGHT; y += 4) {
     g.beginPath();
     g.moveTo(0, y);
@@ -556,18 +549,64 @@ function drawCRTFilter(scene) {
   }
 }
 
-// --- BUCLE PRINCIPAL DE PHASER 3 ---
+// --- ACTUALIZACIÓN DINÁMICA DEL FONDO SEGÚN ALTITUD ---
+function updateBackdrop(scene) {
+  backdropGraphics.clear();
+
+  let colTop, colBot, zoneName;
+
+  if (altitude < 250) {
+    // Zona 1: El Barrio de Caracas (0 - 250m)
+    colTop = 0x1b3820; colBot = 0x5a2d18;
+    zoneName = '1. EL BARRIO';
+    stars.forEach(s => s.setAlpha(0));
+  } else if (altitude < 600) {
+    // Zona 2: El Cielo y El Ávila (250 - 600m)
+    colTop = 0x0d47a1; colBot = 0x42a5f5;
+    zoneName = '2. EL CIELO';
+    stars.forEach(s => s.setAlpha(0));
+  } else if (altitude < 1000) {
+    // Zona 3: Atmósfera y Satélite (600 - 1000m)
+    colTop = 0x050814; colBot = 0x1a237e;
+    zoneName = '3. SATÉLITE VZLA';
+    stars.forEach(s => s.setAlpha(0.6));
+    bgProps.satellite.y = 120 + Math.sin(altitude * 0.05) * 15;
+  } else {
+    // Zona 4: Espacio Profundo y Agujero Negro (1000m+)
+    colTop = 0x020108; colBot = 0x240728;
+    zoneName = '4. AGUJERO NEGRO';
+    stars.forEach(s => s.setAlpha(0.9));
+    bgProps.blackHole.y = 160;
+    bgProps.blackHole.rotation += 0.02;
+  }
+
+  backdropGraphics.fillGradientStyle(colTop, colTop, colBot, colBot, 1);
+  backdropGraphics.fillRect(206, 0, 388, GAME_HEIGHT);
+
+  uiTexts.zoneName.setText(zoneName);
+
+  // Dibujar casitas del barrio al fondo si estamos en la Zona 1
+  if (altitude < 250) {
+    const by = GAME_HEIGHT - 60 + (altitude * 0.2);
+    backdropGraphics.fillStyle(0xb23b20, 0.9); // Ladrillos
+    backdropGraphics.fillRect(215, by, 65, 80);
+    backdropGraphics.fillRect(520, by - 10, 65, 90);
+    backdropGraphics.fillStyle(0x1e88e5, 1); // Tanque azul
+    backdropGraphics.fillRect(235, by - 16, 20, 16);
+    backdropGraphics.fillRect(540, by - 26, 20, 16);
+  }
+}
+
+// --- BUCLE PRINCIPAL ---
 function update(time, delta) {
   const dt = delta / 1000;
 
-  // Manejo de reinicio inmediato con R
   if (justPressed.RESET) {
     justPressed.RESET = false;
     startFreshGame();
     return;
   }
 
-  // Menú principal
   if (gameState === STATE_MENU) {
     if (justPressed.START1 || justPressed.P1_U || held.P1_U) {
       justPressed.START1 = false;
@@ -576,12 +615,19 @@ function update(time, delta) {
     return;
   }
 
+  // Activar Player 2 si toca sus controles
+  if (!p2.active && (held.P2_U || held.P2_D || held.P2_L || held.P2_R)) {
+    p2.active = true;
+    p2.sprite.setVisible(true);
+    uiTexts.p2Lives.setText('❤️❤️❤️');
+  }
+
   // Pausa con P o P1_1
   if (justPressed.P1_1) {
     justPressed.P1_1 = false;
     if (gameState === STATE_PLAYING) {
       gameState = STATE_PAUSED;
-      uiTexts.centerBox.setText('PAUSA\n\nPresiona P para seguir\nR para reiniciar').setVisible(true);
+      uiTexts.centerBox.setText('PAUSA\n\nP: Continuar\nR: Reiniciar').setVisible(true);
       return;
     } else if (gameState === STATE_PAUSED) {
       gameState = STATE_PLAYING;
@@ -592,21 +638,12 @@ function update(time, delta) {
 
   if (gameState === STATE_PAUSED) return;
 
-  // Estado de Salto y Caída del Mono (Al morir)
+  // Estado de caída de Chamito
   if (gameState === STATE_DYING) {
-    monkey.deathVy += 24 * dt; // Gravedad
-    monkey.y += monkey.deathVy;
-    monkey.x += monkey.deathVx;
-    monkey.sprite.setRotation(monkey.sprite.rotation + (monkey.deathVx > 0 ? 8 : -8) * dt);
-    monkey.sprite.setPosition(monkey.x, monkey.y);
-
-    if (monkey.y > GAME_HEIGHT + 70) {
-      triggerGameOver();
-    }
+    updateDyingChamito(dt);
     return;
   }
 
-  // Game Over
   if (gameState === STATE_GAMEOVER) {
     if (justPressed.START1 || justPressed.P1_1) {
       justPressed.START1 = false;
@@ -615,247 +652,283 @@ function update(time, delta) {
     return;
   }
 
-  // --- JUEGO EN EJECUCIÓN (STATE_PLAYING) ---
-  handlePlayerInput(dt);
-  updateWorldProgress(dt);
-  updateAnts(dt);
-  updateBananas(dt);
-  updateParticles(dt);
+  // JUEGO ACTIVO
+  updateBackdrop(this);
+  handlePlayer1(dt);
+  if (p2.active) handlePlayer2(dt);
+  enforceCoopNoOvertake(); // REGLA: Los jugadores no se pueden sobrepasar
+
+  updateWorld(dt);
+  updateEnemies(dt);
+  updateMangos(dt);
   updateHUD();
 }
 
 function startFreshGame() {
   score = 0;
-  bananasCount = 0;
-  lives = 3;
+  mangosCount = 0;
   altitude = 0;
   superTimer = 0;
-  invulTimer = 0;
-  combo = 0;
-  comboTimer = 0;
   scrollSpeed = 2.2;
 
-  // Limpiar entidades
-  ants.forEach((a) => a.sprite.destroy());
-  bananas.forEach((b) => b.sprite.destroy());
-  particles.forEach((p) => p.destroy());
-  ants = [];
-  bananas = [];
-  particles = [];
+  enemies.forEach(e => e.sprite.destroy());
+  mangos.forEach(m => m.sprite.destroy());
+  enemies = [];
+  mangos = [];
 
-  // Reset del mono
-  monkey.bamboo = 1;
-  monkey.side = 1;
-  monkey.x = BAMBOO_X[1] + OFFSET_X;
-  monkey.targetX = monkey.x;
-  monkey.y = 430;
-  monkey.targetY = 430;
-  monkey.isDying = false;
-  monkey.deathVx = 0;
-  monkey.deathVy = 0;
-  monkey.sprite.setTexture('tex_monkey').setRotation(0).setPosition(monkey.x, monkey.y).setAlpha(1);
+  // P1 Reset
+  p1.trunk = 1;
+  p1.side = 1;
+  p1.x = TRUNK_X[1] + OFFSET_X;
+  p1.targetX = p1.x;
+  p1.y = 410;
+  p1.targetY = 410;
+  p1.lives = 3;
+  p1.invul = 0;
+  p1.isDying = false;
+  p1.sprite.setTexture('tex_chamito_p1').setRotation(0).setPosition(p1.x, p1.y).setAlpha(1);
+
+  // P2 Reset
+  p2.trunk = 2;
+  p2.side = -1;
+  p2.x = TRUNK_X[2] - OFFSET_X;
+  p2.targetX = p2.x;
+  p2.y = 470;
+  p2.targetY = 470;
+  p2.lives = 3;
+  p2.invul = 0;
+  p2.isDying = false;
+  p2.sprite.setTexture('tex_chamito_p2').setRotation(0).setPosition(p2.x, p2.y).setAlpha(1);
 
   gameState = STATE_PLAYING;
   uiTexts.centerBox.setVisible(false);
   sfx.startBGM();
 }
 
-function handlePlayerInput(dt) {
-  // Movimiento lateral (Cambiar de bambú / lado)
+function handlePlayer1(dt) {
+  if (p1.lives <= 0) return;
+
   if (justPressed.P1_L) {
     justPressed.P1_L = false;
-    moveMonkeyLeft();
+    if (p1.side === 1) { p1.side = -1; sfx.jump(); }
+    else if (p1.trunk > 0) { p1.trunk--; p1.side = 1; sfx.jump(); }
   }
   if (justPressed.P1_R) {
     justPressed.P1_R = false;
-    moveMonkeyRight();
+    if (p1.side === -1) { p1.side = 1; sfx.jump(); }
+    else if (p1.trunk < NUM_TRUNKS - 1) { p1.trunk++; p1.side = -1; sfx.jump(); }
   }
 
-  // Trepar o deslizarse verticalmente
-  if (held.P1_U) {
-    scrollSpeed = 3.6;
-    monkey.targetY = Math.max(160, monkey.targetY - 140 * dt);
-  } else if (held.P1_D) {
-    scrollSpeed = 1.0;
-    monkey.targetY = Math.min(500, monkey.targetY + 180 * dt);
+  p1.targetX = TRUNK_X[p1.trunk] + p1.side * OFFSET_X;
+
+  if (held.P1_U) p1.targetY = Math.max(160, p1.targetY - 150 * dt);
+  else if (held.P1_D) p1.targetY = Math.min(510, p1.targetY + 180 * dt);
+  else p1.targetY += (410 - p1.targetY) * 0.08;
+
+  p1.x += (p1.targetX - p1.x) * 0.35;
+  p1.y += (p1.targetY - p1.y) * 0.25;
+
+  p1.sprite.setFlipX(p1.side === 1).setPosition(p1.x, p1.y);
+
+  if (p1.invul > 0) {
+    p1.invul -= dt;
+    p1.sprite.setAlpha(Math.floor(p1.invul * 12) % 2 === 0 ? 0.3 : 1.0);
   } else {
-    scrollSpeed = 2.2;
-    monkey.targetY += (430 - monkey.targetY) * 0.08;
+    p1.sprite.setAlpha(1.0);
+  }
+}
+
+function handlePlayer2(dt) {
+  if (p2.lives <= 0) return;
+
+  if (justPressed.P2_L) {
+    justPressed.P2_L = false;
+    if (p2.side === 1) { p2.side = -1; sfx.jump(); }
+    else if (p2.trunk > 0) { p2.trunk--; p2.side = 1; sfx.jump(); }
+  }
+  if (justPressed.P2_R) {
+    justPressed.P2_R = false;
+    if (p2.side === -1) { p2.side = 1; sfx.jump(); }
+    else if (p2.trunk < NUM_TRUNKS - 1) { p2.trunk++; p2.side = -1; sfx.jump(); }
   }
 
-  // Suavizado de posición del mono
-  monkey.x += (monkey.targetX - monkey.x) * 0.35;
-  monkey.y += (monkey.targetY - monkey.y) * 0.25;
+  p2.targetX = TRUNK_X[p2.trunk] + p2.side * OFFSET_X;
 
-  // Orientación del sprite (mira hacia el bambú que abraza)
-  monkey.sprite.setFlipX(monkey.side === 1);
-  monkey.sprite.setPosition(monkey.x, monkey.y);
+  if (held.P2_U) p2.targetY = Math.max(160, p2.targetY - 150 * dt);
+  else if (held.P2_D) p2.targetY = Math.min(510, p2.targetY + 180 * dt);
+  else p2.targetY += (470 - p2.targetY) * 0.08;
 
-  // Parpadeo de invulnerabilidad
-  if (invulTimer > 0) {
-    invulTimer -= dt;
-    monkey.sprite.setAlpha(Math.floor(invulTimer * 12) % 2 === 0 ? 0.3 : 1.0);
+  p2.x += (p2.targetX - p2.x) * 0.35;
+  p2.y += (p2.targetY - p2.y) * 0.25;
+
+  p2.sprite.setFlipX(p2.side === 1).setPosition(p2.x, p2.y);
+
+  if (p2.invul > 0) {
+    p2.invul -= dt;
+    p2.sprite.setAlpha(Math.floor(p2.invul * 12) % 2 === 0 ? 0.3 : 1.0);
   } else {
-    monkey.sprite.setAlpha(1.0);
-  }
-
-  // Modo Super Banana Dorada
-  if (superTimer > 0) {
-    superTimer -= dt;
-    monkey.sprite.setTint(0xffeb3b);
-  } else {
-    monkey.sprite.clearTint();
+    p2.sprite.setAlpha(1.0);
   }
 }
 
-function moveMonkeyLeft() {
-  if (monkey.side === 1) {
-    monkey.side = -1;
-    sfx.jump();
-  } else if (monkey.bamboo > 0) {
-    monkey.bamboo--;
-    monkey.side = 1;
-    sfx.jump();
+// REGLA: Los jugadores no pueden sobrepasarse entre sí (se bloquean si intentan rebasar)
+function enforceCoopNoOvertake() {
+  if (!p2.active || p1.lives <= 0 || p2.lives <= 0) return;
+
+  // Si P1 está originalmente más arriba que P2
+  const minDistance = 35; // Distancia mínima vertical
+  if (p1.y > p2.y - minDistance && p1.targetY < p2.y) {
+    // P2 no deja que P1 baje más allá de él o P1 no puede sobrepasarlo
   }
-  monkey.targetX = BAMBOO_X[monkey.bamboo] + monkey.side * OFFSET_X;
-}
-
-function moveMonkeyRight() {
-  if (monkey.side === -1) {
-    monkey.side = 1;
-    sfx.jump();
-  } else if (monkey.bamboo < NUM_BAMBOOS - 1) {
-    monkey.bamboo++;
-    monkey.side = -1;
-    sfx.jump();
-  }
-  monkey.targetX = BAMBOO_X[monkey.bamboo] + monkey.side * OFFSET_X;
-}
-
-function updateWorldProgress(dt) {
-  altitude += scrollSpeed * dt * 8;
-  score += Math.round(scrollSpeed * 0.6);
-
-  // Spawn Hormigas
-  antSpawnTimer += dt;
-  const antInterval = Math.max(0.65, 1.7 - altitude * 0.0015);
-  if (antSpawnTimer > antInterval) {
-    antSpawnTimer = 0;
-    spawnAnt();
-  }
-
-  // Spawn Bananas
-  bananaSpawnTimer += dt;
-  if (bananaSpawnTimer > 1.25) {
-    bananaSpawnTimer = 0;
-    spawnBanana();
-  }
-}
-
-function spawnAnt() {
-  const bIdx = Math.floor(Math.random() * NUM_BAMBOOS);
-  const side = Math.random() < 0.5 ? -1 : 1;
-  const r = Math.random();
-  let tex = 'tex_ant_red';
-  let speed = 120 + altitude * 0.15;
-
-  if (altitude > 150 && r > 0.65) {
-    tex = 'tex_ant_black';
-    speed *= 1.35;
-  } else if (altitude > 300 && r < 0.25) {
-    tex = 'tex_ant_fire';
-    speed *= 1.7;
-  }
-
-  const sprite = config.scene.create.scene.add.sprite(BAMBOO_X[bIdx] + side * (OFFSET_X - 5), -20, tex).setDepth(15);
-  ants.push({ bIdx, side, speed, sprite });
-}
-
-function spawnBanana() {
-  const bIdx = Math.floor(Math.random() * NUM_BAMBOOS);
-  const side = Math.random() < 0.5 ? -1 : 1;
-  const isGold = Math.random() < 0.08 && superTimer <= 0;
-  const tex = isGold ? 'tex_banana_gold' : 'tex_banana';
-
-  const sprite = config.scene.create.scene.add.sprite(BAMBOO_X[bIdx] + side * OFFSET_X, -20, tex).setDepth(12);
-  bananas.push({ bIdx, side, isGold, sprite });
-}
-
-function updateAnts(dt) {
-  for (let i = ants.length - 1; i >= 0; i--) {
-    const a = ants[i];
-    a.sprite.y += (a.speed + scrollSpeed * 25) * dt;
-
-    // Colisión con el mono
-    const dy = Math.abs(a.sprite.y - monkey.y);
-    const dx = Math.abs(a.sprite.x - monkey.x);
-
-    if (a.bIdx === monkey.bamboo && a.side === monkey.side && dy < 28 && dx < 24) {
-      if (superTimer > 0) {
-        // Super Mono aplasta hormiga
-        sfx.smash();
-        score += 50;
-        a.sprite.destroy();
-        ants.splice(i, 1);
-        continue;
-      } else if (invulTimer <= 0) {
-        sfx.hurt();
-        lives--;
-        invulTimer = 1.6;
-
-        if (lives <= 0) {
-          triggerMonkeyDeath();
-          return;
-        }
+  // En el mismo tronco y lado colisionan directamente
+  if (p1.trunk === p2.trunk && p1.side === p2.side) {
+    if (Math.abs(p1.y - p2.y) < minDistance) {
+      if (p1.y < p2.y) {
+        p1.targetY = p2.y - minDistance;
+      } else {
+        p2.targetY = p1.y - minDistance;
       }
     }
+  }
+}
 
-    if (a.sprite.y > GAME_HEIGHT + 30) {
-      a.sprite.destroy();
-      ants.splice(i, 1);
+function updateWorld(dt) {
+  scrollSpeed = (held.P1_U || held.P2_U) ? 3.6 : 2.2;
+  altitude += scrollSpeed * dt * 9;
+  score += Math.round(scrollSpeed * 0.7);
+
+  if (superTimer > 0) superTimer -= dt;
+
+  // Spawn de enemigos según la zona
+  if (Math.random() < 0.035) spawnEnemy();
+
+  // Spawn de mangos
+  if (Math.random() < 0.038) spawnMango();
+}
+
+function spawnEnemy() {
+  const bIdx = Math.floor(Math.random() * NUM_TRUNKS);
+  const side = Math.random() < 0.5 ? -1 : 1;
+  let tex = 'tex_ant';
+  let speed = 120 + altitude * 0.12;
+
+  if (altitude > 1000) {
+    tex = 'tex_meteor'; speed *= 1.6;
+  } else if (altitude > 600) {
+    tex = 'tex_rocket'; speed *= 1.45;
+  } else if (altitude > 250) {
+    tex = 'tex_guacamaya'; speed *= 1.25;
+  }
+
+  const sprite = config.scene.create.scene.add.sprite(TRUNK_X[bIdx] + side * (OFFSET_X - 5), -20, tex).setDepth(15);
+  enemies.push({ bIdx, side, speed, sprite });
+}
+
+function spawnMango() {
+  const bIdx = Math.floor(Math.random() * NUM_TRUNKS);
+  const side = Math.random() < 0.5 ? -1 : 1;
+  const isGold = Math.random() < 0.08 && superTimer <= 0;
+  const tex = isGold ? 'tex_mango_oro' : 'tex_mango';
+
+  const sprite = config.scene.create.scene.add.sprite(TRUNK_X[bIdx] + side * OFFSET_X, -20, tex).setDepth(12);
+  mangos.push({ bIdx, side, isGold, sprite });
+}
+
+function updateEnemies(dt) {
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    e.sprite.y += (e.speed + scrollSpeed * 25) * dt;
+
+    // Colisión P1
+    if (p1.lives > 0 && checkCollision(e, p1)) {
+      handlePlayerHit(p1);
+    }
+    // Colisión P2
+    if (p2.active && p2.lives > 0 && checkCollision(e, p2)) {
+      handlePlayerHit(p2);
+    }
+
+    if (e.sprite.y > GAME_HEIGHT + 30) {
+      e.sprite.destroy();
+      enemies.splice(i, 1);
     }
   }
 }
 
-function updateBananas(dt) {
-  for (let i = bananas.length - 1; i >= 0; i--) {
-    const b = bananas[i];
-    b.sprite.y += scrollSpeed * 45 * dt;
+function checkCollision(obj, player) {
+  const dy = Math.abs(obj.sprite.y - player.y);
+  const dx = Math.abs(obj.sprite.x - player.x);
+  return obj.bIdx === player.trunk && obj.side === player.side && dy < 28 && dx < 24;
+}
 
-    const dy = Math.abs(b.sprite.y - monkey.y);
-    const dx = Math.abs(b.sprite.x - monkey.x);
+function handlePlayerHit(player) {
+  if (superTimer > 0) {
+    sfx.smash();
+    score += 50;
+    return;
+  }
+  if (player.invul <= 0) {
+    sfx.hurt();
+    player.lives--;
+    player.invul = 1.6;
 
-    if (b.bIdx === monkey.bamboo && b.side === monkey.side && dy < 30 && dx < 24) {
-      bananasCount++;
-      if (b.isGold) {
+    if (player.lives <= 0) {
+      player.isDying = true;
+      player.deathVy = -8.5;
+      player.deathVx = player.side === 1 ? 3 : -3;
+      player.sprite.setTexture('tex_chamito_hurt');
+      sfx.fall();
+
+      // Si ambos mueren (o P1 en solo) -> Estado de muerte
+      if ((!p2.active && p1.lives <= 0) || (p2.active && p1.lives <= 0 && p2.lives <= 0)) {
+        gameState = STATE_DYING;
+        sfx.stopBGM();
+      }
+    }
+  }
+}
+
+function updateMangos(dt) {
+  for (let i = mangos.length - 1; i >= 0; i--) {
+    const m = mangos[i];
+    m.sprite.y += scrollSpeed * 45 * dt;
+
+    if (checkCollision(m, p1) || (p2.active && checkCollision(m, p2))) {
+      mangosCount++;
+      if (m.isGold) {
         sfx.golden();
         superTimer = 7.0;
         score += 150;
       } else {
         sfx.munch();
-        score += 20;
+        score += 25;
       }
-      b.sprite.destroy();
-      bananas.splice(i, 1);
+      m.sprite.destroy();
+      mangos.splice(i, 1);
       continue;
     }
 
-    if (b.sprite.y > GAME_HEIGHT + 30) {
-      b.sprite.destroy();
-      bananas.splice(i, 1);
+    if (m.sprite.y > GAME_HEIGHT + 30) {
+      m.sprite.destroy();
+      mangos.splice(i, 1);
     }
   }
 }
 
-function triggerMonkeyDeath() {
-  gameState = STATE_DYING;
-  sfx.stopBGM();
-  sfx.monkeyFall();
+function updateDyingChamito(dt) {
+  [p1, p2].forEach(p => {
+    if (p.isDying) {
+      p.deathVy += 22 * dt;
+      p.y += p.deathVy;
+      p.x += p.deathVx;
+      p.sprite.setRotation(p.sprite.rotation + 8 * dt);
+      p.sprite.setPosition(p.x, p.y);
+    }
+  });
 
-  monkey.isDying = true;
-  monkey.deathVy = -8.5; // Salto inicial hacia arriba
-  monkey.deathVx = monkey.side === 1 ? 3.0 : -3.0; // Despegarse del bambú hacia el vacío
-  monkey.sprite.setTexture('tex_monkey_hurt');
+  if (p1.y > GAME_HEIGHT + 70 && (!p2.active || p2.y > GAME_HEIGHT + 70)) {
+    triggerGameOver();
+  }
 }
 
 function triggerGameOver() {
@@ -864,23 +937,26 @@ function triggerGameOver() {
 
   if (score > highScore) {
     highScore = score;
-    getStorage().set('mono_high_score', highScore);
+    getStorage().set('chamito_high_score', highScore);
   }
 
   uiTexts.centerBox.setText(
-    `¡FIN DEL JUEGO!\n\nPUNTAJE: ${score}\nBANANAS: ${bananasCount}\nALTURA: ${Math.floor(altitude)}m\n\nPresiona ENTER o R\npara jugar de nuevo`
+    `¡FIN DE LA JORNADA!\n\nPUNTAJE: ${score}\nMANGOS: ${mangosCount} 🥭\nALTURA: ${Math.floor(altitude)}m\n\nPresiona ENTER o R\npara volver a jugar`
   ).setVisible(true);
 }
 
-function updateParticles(dt) {
-  // Limpieza simple
-}
-
 function updateHUD() {
-  let hearts = '';
-  for (let i = 0; i < 3; i++) hearts += i < lives ? '❤️ ' : '🖤 ';
-  uiTexts.lives.setText(hearts);
-  uiTexts.bananas.setText(`${bananasCount} 🍌`);
+  let h1 = '';
+  for (let i = 0; i < 3; i++) h1 += i < p1.lives ? '❤️ ' : '🖤 ';
+  uiTexts.p1Lives.setText(h1);
+
+  if (p2.active) {
+    let h2 = '';
+    for (let i = 0; i < 3; i++) h2 += i < p2.lives ? '❤️ ' : '🖤 ';
+    uiTexts.p2Lives.setText(h2);
+  }
+
+  uiTexts.mangos.setText(`${mangosCount} 🥭`);
   uiTexts.altitude.setText(`${Math.floor(altitude)} m`);
   uiTexts.score.setText(`${score}`);
   uiTexts.high.setText(`${highScore}`);
@@ -889,7 +965,7 @@ function updateHUD() {
 function showMenuUI(visible) {
   if (visible) {
     uiTexts.centerBox.setText(
-      'MONO VERGATARIO\n★ 4 BAMBÚS ★\n\nEsquiva las hormigas\ny devora las bananas\n\nPresiona ENTER o W\npara jugar'
+      'CHAMITO INTERGALÁCTICO\n★ DE LA MATA AL ESPACIO ★\n\n¡Sube la mata de mango\ny llega hasta el infinito!\n\nP1: WASD  |  P2: FLECHAS\n\nPresiona ENTER o W para jugar'
     ).setVisible(true);
   }
 }
