@@ -323,6 +323,7 @@ let mangoSpawnTimer = 0;
 // Capas de render
 let bgGraphics;
 let treeGraphics;
+let superAuraGraphics;
 let hudGraphics;
 let hudTexts = {};
 let centerMenuText;
@@ -352,13 +353,14 @@ function create() {
   // 1. Capas Gráficas
   bgGraphics = this.add.graphics().setDepth(1);
   treeGraphics = this.add.graphics().setDepth(5);
+  superAuraGraphics = this.add.graphics().setDepth(19);
 
-  // 2. Sprite del Chamito y sus 3 Estrellas de Poder de la Arepa
+  // 2. Sprite del Chamito y sus 3 Mini Arepitas de Poder en Órbita 3D
   chamito.sprite = this.add.sprite(chamito.x, chamito.y, 'tex_chamito').setDepth(20);
   starShield = [
-    this.add.sprite(0, 0, 'tex_star').setDepth(25).setVisible(false),
-    this.add.sprite(0, 0, 'tex_star').setDepth(25).setVisible(false),
-    this.add.sprite(0, 0, 'tex_star').setDepth(25).setVisible(false),
+    this.add.sprite(0, 0, 'tex_mini_arepa').setDepth(25).setVisible(false),
+    this.add.sprite(0, 0, 'tex_mini_arepa').setDepth(25).setVisible(false),
+    this.add.sprite(0, 0, 'tex_mini_arepa').setDepth(25).setVisible(false),
   ];
 
   // 3. HUD superior elegante (delgado, no tapa el juego)
@@ -637,28 +639,29 @@ function generateProceduralTextures(scene) {
   gA.generateTexture('tex_mango_gold', 28, 28); // Compatibilidad
   gA.destroy();
 
-  // 5. ESTRELLA DE PODER RETRO (Gira en escudo alrededor del Chamito con la Arepa)
-  const gS = scene.make.graphics({ x: 0, y: 0, add: false });
-  const starPoints = [];
-  const cx = 11, cy = 11, outerR = 9.5, innerR = 4.2;
-  for (let i = 0; i < 10; i++) {
-    const r = i % 2 === 0 ? outerR : innerR;
-    const angle = (i * Math.PI) / 5 - Math.PI / 2;
-    starPoints.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
-  }
-  gS.fillStyle(0xffeb3b, 1);
-  gS.fillPoints(starPoints, true);
-  gS.lineStyle(1.4, 0x000000, 1);
-  gS.strokePoints(starPoints, true);
-  // Ojitos verticales arcade
-  gS.fillStyle(0x000000, 1);
-  gS.fillRect(9, 9, 1.4, 3.5);
-  gS.fillRect(12, 9, 1.4, 3.5);
-  // Brillo
-  gS.fillStyle(0xffffff, 0.9);
-  gS.fillCircle(8, 7, 1.5);
-  gS.generateTexture('tex_star', 22, 22);
-  gS.destroy();
+  // 5. MINI AREPITA TOSTADA DE PODER (Escudo sagrado de poder criollo con budare y mantequilla)
+  const gMA = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Halo exterior dorado suave
+  gMA.fillStyle(0xffd54f, 0.4);
+  gMA.fillCircle(11, 11, 10.5);
+  // Masa de maíz dorada y tostadita
+  gMA.fillStyle(0xd99b26, 1);
+  gMA.fillCircle(11, 11, 8.5);
+  gMA.fillStyle(0xf5cb5c, 1);
+  gMA.fillCircle(11, 11, 7.2);
+  gMA.fillStyle(0xfff194, 0.95);
+  gMA.fillCircle(10, 10, 5);
+  // Quemaditos de budare crujientes
+  gMA.lineStyle(1.6, 0x5d4037, 1);
+  gMA.lineBetween(6, 8, 16, 8);
+  gMA.lineBetween(5, 11, 17, 11);
+  gMA.lineBetween(7, 14, 15, 14);
+  // Brillo de mantequilla derretida
+  gMA.fillStyle(0xffffff, 1);
+  gMA.fillCircle(8, 7, 1.5);
+  gMA.generateTexture('tex_mini_arepa', 22, 22);
+  gMA.generateTexture('tex_star', 22, 22); // Compatibilidad
+  gMA.destroy();
 
   // 5. HORMIGA ROJA COMPACTA (18px de ancho: las 6 patas caben 100% sobre el tronco!)
   const gAR = scene.make.graphics({ x: 0, y: 0, add: false });
@@ -988,6 +991,7 @@ function startFreshGame() {
   starShield.forEach((s) => {
     if (s) s.setVisible(false);
   });
+  if (superAuraGraphics) superAuraGraphics.clear();
   ants = [];
   mangos = [];
   floatingTexts = [];
@@ -1079,25 +1083,67 @@ function handlePlayerInput(dt) {
 
   if (superTimer > 0) {
     superTimer -= dt;
-    // Efecto Arcoíris brillante de Super Poder en el Chamito
-    const rainbowColors = [0xffd700, 0xff5722, 0x00e676, 0x00e5ff, 0xe040fb, 0xffff00];
-    const cIdx = Math.floor((7.5 - superTimer) * 12) % rainbowColors.length;
-    chamito.sprite.setTint(rainbowColors[cIdx]);
+    const t = 7.5 - superTimer;
 
-    // Animar las 3 estrellas de poder girando alrededor del Chamito (estilo estrella de Mario / Mono)
-    const starAngle = (7.5 - superTimer) * 7.5;
-    const starRadius = 28;
-    starShield.forEach((star, idx) => {
-      if (star) {
-        star.setVisible(true);
-        const a = starAngle + (idx * ((Math.PI * 2) / 3));
-        star.setPosition(chamito.x + Math.cos(a) * starRadius, chamito.y + Math.sin(a) * starRadius);
-        star.setRotation(starAngle * 1.5);
+    // 1. Resplandor Solar Dorado de Poder Criollo (Cero colores arcoíris tipo Mario Kart)
+    const goldTints = [0xffffff, 0xffea00, 0xffd700, 0xffb300, 0xff9100, 0xffd700];
+    const cIdx = Math.floor(t * 14) % goldTints.length;
+    chamito.sprite.setTint(goldTints[cIdx]);
+
+    // 2. Aura y Ondas de Choque Calientes de Budare (Efecto de calor y energía expansiva)
+    if (superAuraGraphics) {
+      superAuraGraphics.clear();
+
+      // Ondas expansivas de calor de budare
+      const wavePhase1 = (t * 4.2) % 1.0;
+      const r1 = 18 + wavePhase1 * 26;
+      const a1 = (1.0 - wavePhase1) * 0.75;
+      superAuraGraphics.lineStyle(2.5, 0xffd54f, a1);
+      superAuraGraphics.strokeCircle(chamito.x, chamito.y, r1);
+
+      const wavePhase2 = ((t * 4.2) + 0.5) % 1.0;
+      const r2 = 18 + wavePhase2 * 26;
+      const a2 = (1.0 - wavePhase2) * 0.75;
+      superAuraGraphics.lineStyle(1.8, 0xff9800, a2);
+      superAuraGraphics.strokeCircle(chamito.x, chamito.y, r2);
+
+      // Núcleo de calor brillante alrededor del Chamito
+      const pulse = Math.sin(t * 12);
+      const coreR = 24 + pulse * 2.5;
+      superAuraGraphics.fillStyle(0xffea00, 0.24 + pulse * 0.08);
+      superAuraGraphics.fillCircle(chamito.x, chamito.y, coreR);
+      superAuraGraphics.fillStyle(0xff9800, 0.15);
+      superAuraGraphics.fillCircle(chamito.x, chamito.y, coreR * 0.75);
+
+      // Chispas de candela / maíz tostado flotando en espiral ascendente
+      for (let k = 0; k < 6; k++) {
+        const sparkAngle = t * 6.5 + (k * Math.PI / 3);
+        const sparkDist = 18 + ((k * 8 + t * 24) % 16);
+        const sx = chamito.x + Math.cos(sparkAngle) * sparkDist;
+        const sy = chamito.y + Math.sin(sparkAngle) * (sparkDist * 0.8) - 4;
+        superAuraGraphics.fillStyle(k % 2 === 0 ? 0xffffff : 0xffd54f, 0.85);
+        superAuraGraphics.fillRect(sx - 1.5, sy - 1.5, 3, 3);
+      }
+    }
+
+    // 3. Mini Arepitas Doradas Tostadas en órbita 3D alrededor del Chamito
+    const arepaAngle = t * 6.5;
+    const orbitRadiusX = 32;
+    const orbitRadiusY = 22;
+    starShield.forEach((arepa, idx) => {
+      if (arepa) {
+        arepa.setVisible(true);
+        const a = arepaAngle + (idx * ((Math.PI * 2) / 3));
+        arepa.setPosition(chamito.x + Math.cos(a) * orbitRadiusX, chamito.y + Math.sin(a) * orbitRadiusY);
+        arepa.setRotation(arepaAngle * 2.0);
+        // Profundidad 3D: oculta tras el chamito cuando órbita por detrás, visible encima cuando pasa al frente
+        arepa.setDepth(Math.sin(a) > 0 ? 25 : 18);
       }
     });
   } else {
     chamito.sprite.clearTint();
     starShield.forEach((star) => { if (star) star.setVisible(false); });
+    if (superAuraGraphics) superAuraGraphics.clear();
   }
 }
 
@@ -1771,7 +1817,8 @@ function updateAnts(dt) {
       if (superTimer > 0) {
         sfx.smash();
         score += 50;
-        const msg = a.isSpaceShip ? '💥 OVNI DESTRUIDO! +50' : '★ APLASTADA! +50';
+        const smashPhrases = ['🫓 ¡TOSTADA! +50', '🔥 ¡BUDARE POWER! +50', '💥 ¡PODER CRIOLLO! +50'];
+        const msg = a.isSpaceShip ? '💥 ¡OVNI TOSTADO! +50' : smashPhrases[Math.floor(Math.random() * smashPhrases.length)];
         addFloatingText(msg, a.sprite.x, a.sprite.y, '#ffd54f');
         a.sprite.destroy();
         ants.splice(i, 1);
@@ -1859,6 +1906,7 @@ function triggerChamitoDeath() {
   gameState = STATE_DYING;
   superTimer = 0;
   starShield.forEach((s) => s && s.setVisible(false));
+  if (superAuraGraphics) superAuraGraphics.clear();
   sfx.stopBGM();
   sfx.chamitoFall();
 
@@ -1900,8 +1948,8 @@ function updateHUD() {
   hudTexts.mangos.setText(`${mangosCount} 🥭`);
   hudTexts.altitude.setText(`${Math.floor(altitude)}m`);
   if (superTimer > 0) {
-    hudTexts.score.setText(`${score} ★`);
-    hudTexts.score.setColor('#ffe600');
+    hudTexts.score.setText(`${score} 🫓`);
+    hudTexts.score.setColor('#ffd54f');
   } else {
     hudTexts.score.setText(`${score}`);
     hudTexts.score.setColor('#ffffff');
