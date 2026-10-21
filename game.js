@@ -51,41 +51,51 @@ const justPressed = {
 
 window.addEventListener('keydown', (e) => {
   const k = e.key;
-  if (k === 'ArrowUp' || k === 'w' || k === 'W') {
+  const code = e.code;
+
+  if (k === 'ArrowUp' || k === 'w' || k === 'W' || code === 'KeyW' || code === 'ArrowUp') {
     if (!held.P1_U) justPressed.P1_U = true;
     held.P1_U = true;
+    e.preventDefault();
   }
-  if (k === 'ArrowDown' || k === 's' || k === 'S') {
+  if (k === 'ArrowDown' || k === 's' || k === 'S' || code === 'KeyS' || code === 'ArrowDown') {
     if (!held.P1_D) justPressed.P1_D = true;
     held.P1_D = true;
+    e.preventDefault();
   }
-  if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A' || code === 'KeyA' || code === 'ArrowLeft') {
     if (!held.P1_L) justPressed.P1_L = true;
     held.P1_L = true;
+    e.preventDefault();
   }
-  if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+  if (k === 'ArrowRight' || k === 'd' || k === 'D' || code === 'KeyD' || code === 'ArrowRight') {
     if (!held.P1_R) justPressed.P1_R = true;
     held.P1_R = true;
+    e.preventDefault();
   }
-  if (k === 'Enter' || k === ' ') {
+  if (k === 'Enter' || k === ' ' || k === 'Spacebar' || code === 'Space' || code === 'Enter') {
     if (!held.START1) justPressed.START1 = true;
     held.START1 = true;
+    e.preventDefault();
   }
-  if (k === 'p' || k === 'P' || k === 'Escape') {
+  if (k === 'p' || k === 'P' || k === 'Escape' || code === 'KeyP' || code === 'Escape') {
     justPressed.P1_1 = true;
+    e.preventDefault();
   }
-  if (k === 'r' || k === 'R') {
+  if (k === 'r' || k === 'R' || code === 'KeyR') {
     justPressed.RESET = true;
+    e.preventDefault();
   }
 });
 
 window.addEventListener('keyup', (e) => {
   const k = e.key;
-  if (k === 'ArrowUp' || k === 'w' || k === 'W') held.P1_U = false;
-  if (k === 'ArrowDown' || k === 's' || k === 'S') held.P1_D = false;
-  if (k === 'ArrowLeft' || k === 'a' || k === 'A') held.P1_L = false;
-  if (k === 'ArrowRight' || k === 'd' || k === 'D') held.P1_R = false;
-  if (k === 'Enter' || k === ' ') held.START1 = false;
+  const code = e.code;
+  if (k === 'ArrowUp' || k === 'w' || k === 'W' || code === 'KeyW' || code === 'ArrowUp') held.P1_U = false;
+  if (k === 'ArrowDown' || k === 's' || k === 'S' || code === 'KeyS' || code === 'ArrowDown') held.P1_D = false;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A' || code === 'KeyA' || code === 'ArrowLeft') held.P1_L = false;
+  if (k === 'ArrowRight' || k === 'd' || k === 'D' || code === 'KeyD' || code === 'ArrowRight') held.P1_R = false;
+  if (k === 'Enter' || k === ' ' || k === 'Spacebar' || code === 'Space' || code === 'Enter') held.START1 = false;
 });
 
 // --- Almacenamiento persistente ---
@@ -783,23 +793,26 @@ function drawCRTScanlines(scene) {
 function update(time, delta) {
   const dt = delta / 1000;
 
-  if (justPressed.RESET) {
+  // Reinicio en cualquier momento con R, o con Espacio/Enter si está muriendo o en game over
+  if (justPressed.RESET || ((gameState === STATE_DYING || gameState === STATE_GAMEOVER) && justPressed.START1)) {
     justPressed.RESET = false;
+    justPressed.START1 = false;
     startFreshGame();
     return;
   }
 
-  // Menú principal
+  // Menú principal (iniciar con Espacio, Enter, R o W/↑)
   if (gameState === STATE_MENU) {
-    if (justPressed.START1 || justPressed.P1_U || held.P1_U) {
+    if (justPressed.START1 || justPressed.RESET || justPressed.P1_U || held.P1_U) {
       justPressed.START1 = false;
+      justPressed.RESET = false;
       justPressed.P1_U = false;
       startFreshGame();
     }
     return;
   }
 
-  // Pausa
+  // Pausa con P o Escape
   if (justPressed.P1_1) {
     justPressed.P1_1 = false;
     if (gameState === STATE_PLAYING) {
@@ -829,10 +842,11 @@ function update(time, delta) {
     return;
   }
 
-  // Game Over
+  // Game Over (Reiniciar con Espacio, Enter, R o W/↑)
   if (gameState === STATE_GAMEOVER) {
-    if (justPressed.START1 || justPressed.P1_U) {
+    if (justPressed.START1 || justPressed.RESET || justPressed.P1_U) {
       justPressed.START1 = false;
+      justPressed.RESET = false;
       justPressed.P1_U = false;
       startFreshGame();
     }
@@ -859,10 +873,18 @@ function startFreshGame() {
   invulTimer = 0;
   scrollSpeed = 0.5;
 
-  ants.forEach((a) => a.sprite.destroy());
-  mangos.forEach((m) => m.sprite.destroy());
-  floatingTexts.forEach((t) => t.destroy());
-  starShield.forEach((s) => s && s.setVisible(false));
+  ants.forEach((a) => {
+    if (a && a.sprite) a.sprite.destroy();
+  });
+  mangos.forEach((m) => {
+    if (m && m.sprite) m.sprite.destroy();
+  });
+  floatingTexts.forEach((t) => {
+    if (t && t.textObj) t.textObj.destroy();
+  });
+  starShield.forEach((s) => {
+    if (s) s.setVisible(false);
+  });
   ants = [];
   mangos = [];
   floatingTexts = [];
@@ -877,11 +899,14 @@ function startFreshGame() {
   chamito.isDying = false;
   chamito.deathVx = 0;
   chamito.deathVy = 0;
-  chamito.sprite.setTexture('tex_chamito').setRotation(0).setPosition(chamito.x, chamito.y).setAlpha(1);
+  if (chamito.sprite) {
+    chamito.sprite.setTexture('tex_chamito').setRotation(0).setPosition(chamito.x, chamito.y).setAlpha(1);
+    chamito.sprite.clearTint();
+  }
 
   gameState = STATE_PLAYING;
-  centerMenuText.setVisible(false);
-  sfx.startBGM();
+  if (centerMenuText) centerMenuText.setVisible(false);
+  if (sfx) sfx.startBGM();
   broadcastStats();
 }
 
@@ -1435,7 +1460,7 @@ function triggerGameOver() {
   broadcastStats();
 
   centerMenuText.setText(
-    `¡FIN DEL JUEGO!\n\nPUNTAJE: ${score}\nMANGOS: ${mangosCount}\nALTURA: ${Math.floor(altitude)}m\n\nPresiona ENTER o R\npara jugar de nuevo`
+    `¡FIN DEL JUEGO!\n\nPUNTAJE: ${score}\nMANGOS: ${mangosCount}\nALTURA: ${Math.floor(altitude)}m\n\nPresiona ESPACIO, ENTER o R\npara jugar de nuevo`
   ).setVisible(true);
 }
 
@@ -1457,7 +1482,7 @@ function updateHUD() {
 function showMenuUI(visible) {
   if (visible) {
     centerMenuText.setText(
-      'CHAMITO\n★ LA MATA DE MANGO ★\n\nEsquiva las hormigas\ny agarra los mangos\n\nPresiona ENTER o W / ↑\npara jugar'
+      'CHAMITO\n★ LA MATA DE MANGO ★\n\nEsquiva las hormigas\ny agarra los mangos\n\nPresiona ESPACIO, ENTER o W / ↑\npara jugar'
     ).setVisible(true);
   }
 }
