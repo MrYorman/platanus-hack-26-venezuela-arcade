@@ -31,32 +31,69 @@ const CABINET_KEYS = {
   START2: ['2'],
 };
 
-const KEYBOARD_TO_ARCADE = {};
-for (const [arcadeCode, keys] of Object.entries(CABINET_KEYS)) {
-  for (const key of keys) {
-    KEYBOARD_TO_ARCADE[key.length === 1 ? key.toLowerCase() : key] = arcadeCode;
-  }
-}
-
-const held = Object.create(null);
-const justPressed = Object.create(null);
+// Registro de teclas pulsadas (Soporta WASD, Flechas, Espacio, Enter, R, P)
+const held = {
+  P1_U: false,
+  P1_D: false,
+  P1_L: false,
+  P1_R: false,
+  START1: false,
+};
+const justPressed = {
+  P1_U: false,
+  P1_D: false,
+  P1_L: false,
+  P1_R: false,
+  START1: false,
+  P1_1: false,
+  RESET: false,
+};
 
 window.addEventListener('keydown', (e) => {
-  const norm = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-  const code = KEYBOARD_TO_ARCADE[norm];
-  if (code) {
-    if (!held[code]) justPressed[code] = true;
-    held[code] = true;
+  const k = e.key;
+
+  // Trepar (W o Flecha Arriba)
+  if (k === 'ArrowUp' || k === 'w' || k === 'W') {
+    if (!held.P1_U) justPressed.P1_U = true;
+    held.P1_U = true;
   }
-  if (norm === 'r') {
+  // Deslizarse (S o Flecha Abajo)
+  if (k === 'ArrowDown' || k === 's' || k === 'S') {
+    if (!held.P1_D) justPressed.P1_D = true;
+    held.P1_D = true;
+  }
+  // Mover Izquierda (A o Flecha Izquierda)
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
+    if (!held.P1_L) justPressed.P1_L = true;
+    held.P1_L = true;
+  }
+  // Mover Derecha (D o Flecha Derecha)
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+    if (!held.P1_R) justPressed.P1_R = true;
+    held.P1_R = true;
+  }
+  // Iniciar / Seleccionar (Enter o Espacio)
+  if (k === 'Enter' || k === ' ') {
+    if (!held.START1) justPressed.START1 = true;
+    held.START1 = true;
+  }
+  // Pausa (P o Escape)
+  if (k === 'p' || k === 'P' || k === 'Escape') {
+    justPressed.P1_1 = true;
+  }
+  // Reiniciar (R)
+  if (k === 'r' || k === 'R') {
     justPressed.RESET = true;
   }
 });
 
 window.addEventListener('keyup', (e) => {
-  const norm = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-  const code = KEYBOARD_TO_ARCADE[norm];
-  if (code) held[code] = false;
+  const k = e.key;
+  if (k === 'ArrowUp' || k === 'w' || k === 'W') held.P1_U = false;
+  if (k === 'ArrowDown' || k === 's' || k === 'S') held.P1_D = false;
+  if (k === 'ArrowLeft' || k === 'a' || k === 'A') held.P1_L = false;
+  if (k === 'ArrowRight' || k === 'd' || k === 'D') held.P1_R = false;
+  if (k === 'Enter' || k === ' ') held.START1 = false;
 });
 
 // --- Almacenamiento persistente ---
@@ -173,7 +210,7 @@ class ArcadeAudio {
 
 // --- CONSTANTES DEL JUEGO ---
 const NUM_TRUNKS = 4;
-const TRUNK_X = [80, 180, 300, 400]; // 4 Troncos de la mata de mango repartidos en 480px
+const TRUNK_X = [80, 180, 300, 400]; // 4 Troncos distribuidos a lo ancho de 480px
 const OFFSET_X = 24; // Distancia al abrazar el tronco
 
 const STATE_MENU = 0;
@@ -229,7 +266,7 @@ let chamito = {
   isDying: false,
   deathVx: 0,
   deathVy: 0,
-  animTick: 0,
+  climbTick: 0,
 };
 
 let ants = [];
@@ -238,7 +275,7 @@ let floatingTexts = [];
 let antSpawnTimer = 0;
 let mangoSpawnTimer = 0;
 
-// Capas de fondo
+// Capas de fondo y render
 let bgGraphics;
 let treeGraphics;
 let hudGraphics;
@@ -273,7 +310,7 @@ function create() {
   // 2. Sprite del Chamito
   chamito.sprite = this.add.sprite(chamito.x, chamito.y, 'tex_chamito').setDepth(20);
 
-  // 3. HUD elegante superior (solo 42px de alto, NO cards adentro!)
+  // 3. HUD elegante superior (delgado, 42px, NO ocupa espacio de juego)
   createSleekHUD(this);
 
   // 4. Scanlines CRT del canvas
@@ -282,7 +319,7 @@ function create() {
   // 5. Menú Inicial
   centerMenuText = this.add.text(240, 320, '', {
     fontFamily: 'monospace',
-    fontSize: '18px',
+    fontSize: '17px',
     color: '#ffe600',
     align: 'center',
     backgroundColor: '#031208',
@@ -291,18 +328,20 @@ function create() {
   }).setOrigin(0.5).setDepth(50);
 
   showMenuUI(true);
+  renderDynamicBackground();
+  renderMangoTrunks();
 }
 
 // --- GENERACIÓN DE TEXTURAS PROCEDURALES ---
 function generateProceduralTextures(scene) {
-  // 1. Chamito (Niño con morral tricolor venezolano)
+  // 1. Chamito (Niño con uniforme escolar y morral tricolor venezolano)
   const gC = scene.make.graphics({ x: 0, y: 0, add: false });
   
   // Shorts azul escolar
   gC.fillStyle(0x1a237e, 1);
   gC.fillRect(11, 27, 6, 12);
   gC.fillRect(19, 27, 6, 12);
-  // Zapatitos marrones
+  // Zapatos marrones
   gC.fillStyle(0x4e342e, 1);
   gC.fillRect(10, 38, 7, 5);
   gC.fillRect(19, 38, 7, 5);
@@ -311,18 +350,15 @@ function generateProceduralTextures(scene) {
   gC.fillStyle(0xf5f5f5, 1);
   gC.fillRoundedRect(10, 16, 16, 13, 3);
 
-  // Morral tricolor en la espalda
-  // Franja Amarilla
-  gC.fillStyle(0xffd600, 1);
+  // Morral tricolor escolar en la espalda (amarillo, azul con estrellitas, rojo)
+  gC.fillStyle(0xffd600, 1); // Amarillo
   gC.fillRect(2, 17, 8, 4);
-  // Franja Azul con estrellitas
-  gC.fillStyle(0x1565c0, 1);
+  gC.fillStyle(0x1565c0, 1); // Azul
   gC.fillRect(2, 21, 8, 4);
-  gC.fillStyle(0xffffff, 1);
+  gC.fillStyle(0xffffff, 1); // Estrellitas blancas
   gC.fillRect(4, 22, 1.5, 1.5);
   gC.fillRect(7, 22, 1.5, 1.5);
-  // Franja Roja
-  gC.fillStyle(0xd32f2f, 1);
+  gC.fillStyle(0xd32f2f, 1); // Rojo
   gC.fillRect(2, 25, 8, 4);
 
   // Brazos agarrando el tronco
@@ -333,7 +369,7 @@ function generateProceduralTextures(scene) {
   // Cabeza del chamito
   gC.fillStyle(0xd7a17c, 1);
   gC.fillCircle(18, 10, 8);
-  // Cabello negro peinado hacia un lado
+  // Cabello negro peinado hacia el lado
   gC.fillStyle(0x212121, 1);
   gC.fillCircle(17, 6, 7.5);
   gC.fillCircle(21, 7, 5.5);
@@ -358,7 +394,7 @@ function generateProceduralTextures(scene) {
   gC.generateTexture('tex_chamito', 38, 46);
   gC.destroy();
 
-  // 2. Chamito golpeado / cayendo (Ojos X X, boca en O)
+  // 2. Chamito golpeado / cayendo (Ojos X X, boca en O de susto)
   const gCH = scene.make.graphics({ x: 0, y: 0, add: false });
   gCH.fillStyle(0x1a237e, 1);
   gCH.fillRect(11, 27, 6, 12);
@@ -403,24 +439,24 @@ function generateProceduralTextures(scene) {
   gCH.moveTo(23, 7); gCH.lineTo(19, 11);
   gCH.strokePath();
 
-  // Boca abierta "O" de susto
+  // Boca abierta "O"
   gCH.fillStyle(0x3e2723, 1);
   gCH.fillCircle(18, 14, 2.5);
 
   gCH.generateTexture('tex_chamito_hurt', 38, 46);
   gCH.destroy();
 
-  // 3. Mango Criollo Maduro (Silueta inconfundible con degradado verde, amarillo, rojo)
+  // 3. Mango Criollo Maduro (Forma curva de gota, degradado verde, amarillo, rojo con brillo)
   const gM = scene.make.graphics({ x: 0, y: 0, add: false });
-  gM.fillStyle(0x7cb342, 1);
+  gM.fillStyle(0x7cb342, 1); // Verde base
   gM.fillEllipse(10, 14, 9, 12);
-  gM.fillStyle(0xffb300, 1);
+  gM.fillStyle(0xffb300, 1); // Amarillo pulpa
   gM.fillEllipse(13, 14, 11, 13);
-  gM.fillStyle(0xd32f2f, 0.92);
+  gM.fillStyle(0xd32f2f, 0.95); // Chapa roja
   gM.fillEllipse(16, 14, 8, 11);
 
   // Brillo
-  gM.fillStyle(0xffffff, 0.45);
+  gM.fillStyle(0xffffff, 0.5);
   gM.fillCircle(11, 10, 2.5);
 
   // Tallito y hoja
@@ -452,127 +488,125 @@ function generateProceduralTextures(scene) {
   gMG.generateTexture('tex_mango_gold', 26, 26);
   gMG.destroy();
 
-  // 5. Hormiga Roja Caraqueña (Grande, anatómica y bien definida)
+  // 5. Hormiga Roja Caraqueña (Anatómica, nítida y con 6 patas articuladas)
   const gAR = scene.make.graphics({ x: 0, y: 0, add: false });
-  // Abdomen trasero
+  // Abdomen grande
   gAR.fillStyle(0xd32f2f, 1);
-  gAR.fillEllipse(12, 7, 8, 11);
-  // Rayas del abdomen
-  gAR.lineStyle(1, 0xb71c1c, 0.9);
-  gAR.lineBetween(8, 6, 16, 6);
-  gAR.lineBetween(8, 9, 16, 9);
+  gAR.fillEllipse(14, 8, 9, 12);
+  gAR.lineStyle(1.2, 0x8e0000, 1);
+  gAR.lineBetween(9, 7, 19, 7);
+  gAR.lineBetween(9, 10, 19, 10);
 
   // Tórax
   gAR.fillStyle(0xb71c1c, 1);
-  gAR.fillEllipse(12, 15, 6, 7);
+  gAR.fillEllipse(14, 18, 6.5, 7.5);
 
-  // Cabeza delantera
+  // Cabeza
   gAR.fillStyle(0xc62828, 1);
-  gAR.fillCircle(12, 22, 5.5);
+  gAR.fillCircle(14, 26, 6);
 
   // Ojitos
   gAR.fillStyle(0xffffff, 1);
-  gAR.fillCircle(10, 21, 1.4);
-  gAR.fillCircle(14, 21, 1.4);
+  gAR.fillCircle(11, 25, 1.6);
+  gAR.fillCircle(17, 25, 1.6);
   gAR.fillStyle(0x000000, 1);
-  gAR.fillCircle(10, 22, 0.9);
-  gAR.fillCircle(14, 22, 0.9);
+  gAR.fillCircle(11, 26, 0.9);
+  gAR.fillCircle(17, 26, 0.9);
 
-  // Mandíbulas afiladas
-  gAR.lineStyle(1.5, 0xffffff, 1);
+  // Mandíbulas tenaza
+  gAR.lineStyle(1.6, 0xffffff, 1);
   gAR.beginPath();
-  gAR.moveTo(10, 26); gAR.lineTo(8, 29);
-  gAR.moveTo(14, 26); gAR.lineTo(16, 29);
+  gAR.moveTo(11, 30); gAR.lineTo(9, 34);
+  gAR.moveTo(17, 30); gAR.lineTo(19, 34);
   gAR.strokePath();
 
   // Antenas
   gAR.lineStyle(1.4, 0xb71c1c, 1);
   gAR.beginPath();
-  gAR.moveTo(10, 20); gAR.lineTo(6, 16);
-  gAR.moveTo(14, 20); gAR.lineTo(18, 16);
+  gAR.moveTo(11, 23); gAR.lineTo(6, 19);
+  gAR.moveTo(17, 23); gAR.lineTo(22, 19);
   gAR.strokePath();
 
-  // 6 Patas articuladas
-  gAR.lineStyle(1.8, 0xd32f2f, 1);
+  // 6 Patas articuladas visibles
+  gAR.lineStyle(2, 0xd32f2f, 1);
   gAR.beginPath();
-  // Patas delanteras
-  gAR.moveTo(12, 19); gAR.lineTo(3, 16);
-  gAR.moveTo(12, 19); gAR.lineTo(21, 16);
-  // Patas medias
-  gAR.moveTo(12, 15); gAR.lineTo(2, 15);
-  gAR.moveTo(12, 15); gAR.lineTo(22, 15);
-  // Patas traseras
-  gAR.moveTo(12, 11); gAR.lineTo(3, 8);
-  gAR.moveTo(12, 11); gAR.lineTo(21, 8);
+  // Delanteras
+  gAR.moveTo(14, 22); gAR.lineTo(3, 19);
+  gAR.moveTo(14, 22); gAR.lineTo(25, 19);
+  // Medias
+  gAR.moveTo(14, 17); gAR.lineTo(2, 17);
+  gAR.moveTo(14, 17); gAR.lineTo(26, 17);
+  // Traseras
+  gAR.moveTo(14, 12); gAR.lineTo(3, 8);
+  gAR.moveTo(14, 12); gAR.lineTo(25, 8);
   gAR.strokePath();
 
-  gAR.generateTexture('tex_ant_red', 24, 32);
+  gAR.generateTexture('tex_ant_red', 28, 36);
   gAR.destroy();
 
   // 6. Hormiga Negra Guerrera
   const gAB = scene.make.graphics({ x: 0, y: 0, add: false });
   gAB.fillStyle(0x212121, 1);
-  gAB.fillEllipse(13, 8, 9, 12);
+  gAB.fillEllipse(15, 9, 10, 13);
   gAB.fillStyle(0x111111, 1);
-  gAB.fillEllipse(13, 16, 7, 8);
+  gAB.fillEllipse(15, 19, 7.5, 8.5);
   gAB.fillStyle(0x000000, 1);
-  gAB.fillCircle(13, 24, 6);
+  gAB.fillCircle(15, 27, 6.5);
 
   gAB.fillStyle(0xffffff, 1);
-  gAB.fillCircle(11, 23, 1.5);
-  gAB.fillCircle(15, 23, 1.5);
+  gAB.fillCircle(12, 26, 1.6);
+  gAB.fillCircle(18, 26, 1.6);
 
-  gAB.lineStyle(1.5, 0xffffff, 1);
+  gAB.lineStyle(1.6, 0xffffff, 1);
   gAB.beginPath();
-  gAB.moveTo(11, 28); gAB.lineTo(9, 31);
-  gAB.moveTo(15, 28); gAB.lineTo(17, 31);
+  gAB.moveTo(12, 31); gAB.lineTo(10, 35);
+  gAB.moveTo(18, 31); gAB.lineTo(20, 35);
   gAB.strokePath();
 
-  gAB.lineStyle(1.8, 0x424242, 1);
+  gAB.lineStyle(2, 0x424242, 1);
   gAB.beginPath();
-  gAB.moveTo(13, 21); gAB.lineTo(3, 17);
-  gAB.moveTo(13, 21); gAB.lineTo(23, 17);
-  gAB.moveTo(13, 16); gAB.lineTo(2, 16);
-  gAB.moveTo(13, 16); gAB.lineTo(24, 16);
-  gAB.moveTo(13, 12); gAB.lineTo(3, 9);
-  gAB.moveTo(13, 12); gAB.lineTo(23, 9);
+  gAB.moveTo(15, 23); gAR.lineTo(3, 20);
+  gAB.moveTo(15, 23); gAR.lineTo(27, 20);
+  gAB.moveTo(15, 18); gAR.lineTo(2, 18);
+  gAB.moveTo(15, 18); gAR.lineTo(28, 18);
+  gAB.moveTo(15, 13); gAR.lineTo(3, 9);
+  gAB.moveTo(15, 13); gAR.lineTo(27, 9);
   gAB.strokePath();
 
-  gAB.generateTexture('tex_ant_black', 26, 34);
+  gAB.generateTexture('tex_ant_black', 30, 38);
   gAB.destroy();
 
   // 7. Hormiga de Fuego Bala
   const gAF = scene.make.graphics({ x: 0, y: 0, add: false });
   gAF.fillStyle(0xff6d00, 1);
-  gAF.fillEllipse(12, 7, 8, 11);
+  gAF.fillEllipse(14, 8, 9, 12);
   gAF.fillStyle(0xdd2c00, 1);
-  gAF.fillEllipse(12, 15, 6, 7);
+  gAF.fillEllipse(14, 18, 6.5, 7.5);
   gAF.fillStyle(0xbf360c, 1);
-  gAF.fillCircle(12, 22, 5.5);
+  gAF.fillCircle(14, 26, 6);
 
   gAF.fillStyle(0xffff00, 1);
-  gAF.fillCircle(10, 21, 1.5);
-  gAF.fillCircle(14, 21, 1.5);
+  gAF.fillCircle(11, 25, 1.6);
+  gAF.fillCircle(17, 25, 1.6);
 
-  gAF.lineStyle(1.8, 0xff9100, 1);
+  gAF.lineStyle(2, 0xff9100, 1);
   gAF.beginPath();
-  gAF.moveTo(12, 19); gAF.lineTo(3, 16);
-  gAF.moveTo(12, 19); gAF.lineTo(21, 16);
-  gAF.moveTo(12, 15); gAF.lineTo(2, 15);
-  gAF.moveTo(12, 15); gAF.lineTo(22, 15);
-  gAF.moveTo(12, 11); gAF.lineTo(3, 8);
-  gAF.moveTo(12, 11); gAF.lineTo(21, 8);
+  gAF.moveTo(14, 22); gAF.lineTo(3, 19);
+  gAF.moveTo(14, 22); gAF.lineTo(25, 19);
+  gAF.moveTo(14, 17); gAF.lineTo(2, 17);
+  gAF.moveTo(14, 17); gAF.lineTo(26, 17);
+  gAF.moveTo(14, 12); gAF.lineTo(3, 8);
+  gAF.moveTo(14, 12); gAF.lineTo(25, 8);
   gAF.strokePath();
 
-  gAF.generateTexture('tex_ant_fire', 24, 32);
+  gAF.generateTexture('tex_ant_fire', 28, 36);
   gAF.destroy();
 }
 
-// --- HUD ELEGANTE SUPERIOR (Sin recuadros gigantes adentro!) ---
+// --- HUD ELEGANTE SUPERIOR (Delgado y sin recuadros adentro!) ---
 function createSleekHUD(scene) {
   hudGraphics = scene.add.graphics().setDepth(30);
 
-  // Barra delgada translúcida (solo 42 px)
   hudGraphics.fillStyle(0x021107, 0.82);
   hudGraphics.fillRect(0, 0, GAME_WIDTH, 42);
   hudGraphics.lineStyle(1.5, 0x1fa347, 1);
@@ -615,6 +649,7 @@ function update(time, delta) {
   if (gameState === STATE_MENU) {
     if (justPressed.START1 || justPressed.P1_U || held.P1_U) {
       justPressed.START1 = false;
+      justPressed.P1_U = false;
       startFreshGame();
     }
     return;
@@ -652,8 +687,9 @@ function update(time, delta) {
 
   // Game Over
   if (gameState === STATE_GAMEOVER) {
-    if (justPressed.START1 || justPressed.P1_1) {
+    if (justPressed.START1 || justPressed.P1_U) {
       justPressed.START1 = false;
+      justPressed.P1_U = false;
       startFreshGame();
     }
     return;
@@ -716,15 +752,15 @@ function handlePlayerInput(dt) {
     moveChamitoRight();
   }
 
-  // Trepar o deslizarse verticalmente
+  // Trepar o deslizarse verticalmente (W / ↑ y S / ↓)
   if (held.P1_U) {
-    scrollSpeed = 3.8;
+    scrollSpeed = 4.2; // Trepar rápido hacia arriba
     chamito.targetY = Math.max(160, chamito.targetY - 140 * dt);
   } else if (held.P1_D) {
-    scrollSpeed = 1.0;
+    scrollSpeed = 0.8; // Deslizarse suavemente hacia abajo
     chamito.targetY = Math.min(520, chamito.targetY + 180 * dt);
   } else {
-    scrollSpeed = 2.2;
+    scrollSpeed = 2.2; // Velocidad normal de subida constante
     chamito.targetY += (470 - chamito.targetY) * 0.08;
   }
 
@@ -802,159 +838,209 @@ function updateWorldProgress(dt) {
 }
 
 // --- RENDER DEL FONDO DINÁMICO (ZONA URBANA BARRIO -> ÁVILA -> ATMÓSFERA -> ESPACIO PROFUNDO) ---
+// NOTA CLAVE: Al subir el chamito, ¡el suelo y las casas se mueven hacia ABAJO (descienden)!
 function renderDynamicBackground() {
   if (!bgGraphics) return;
   bgGraphics.clear();
 
   const alt = altitude;
 
-  // 1. ZONA URBANA / BARRIO VENEZOLANO (0 - 300m)
-  if (alt < 300) {
-    // Cielo azul de Caracas
-    bgGraphics.fillGradientStyle(0x1e88e5, 0x1e88e5, 0x64b5f6, 0x64b5f6, 1);
+  // 1. ZONA URBANA / BARRIO VENEZOLANO (0 a 300 metros)
+  // Al subir, las casas bajan (Y aumenta) hasta salir por la parte inferior de la pantalla.
+  const worldDownOffset = alt * 3.0; // Desplazamiento hacia abajo al trepar
+
+  if (worldDownOffset < GAME_HEIGHT + 250) {
+    // Cielo caraqueño diurno
+    bgGraphics.fillGradientStyle(0x1976d2, 0x1976d2, 0x64b5f6, 0x64b5f6, 1);
     bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Desplazamiento del patio y casas según sube el chamito
-    const offsetY = alt * 1.8;
+    // Suelo del patio con grama y tierra (comienza en la parte inferior de la pantalla)
+    const groundY = 480 + worldDownOffset;
+    if (groundY < GAME_HEIGHT + 300) {
+      bgGraphics.fillStyle(0x33691e, 1); // Grama
+      bgGraphics.fillRect(0, groundY, GAME_WIDTH, 80);
+      bgGraphics.fillStyle(0x4e342e, 1); // Tierra
+      bgGraphics.fillRect(0, groundY + 40, GAME_WIDTH, 400);
 
-    // Suelo del patio con grama y tierra al inicio
-    if (offsetY < GAME_HEIGHT) {
-      bgGraphics.fillStyle(0x33691e, 1);
-      bgGraphics.fillRect(0, GAME_HEIGHT - offsetY + 280, GAME_WIDTH, 400);
-      bgGraphics.fillStyle(0x4e342e, 1);
-      bgGraphics.fillRect(0, GAME_HEIGHT - offsetY + 330, GAME_WIDTH, 400);
+      // Raíces gruesas de la mata de mango saliendo del suelo
+      bgGraphics.fillStyle(0x3e2723, 1);
+      TRUNK_X.forEach((tx) => {
+        bgGraphics.fillTriangle(tx - 24, groundY + 50, tx, groundY - 10, tx + 24, groundY + 50);
+      });
     }
 
-    // Casas del barrio de ladrillos rojos sin frisar
-    const houseY = GAME_HEIGHT - offsetY + 100;
-    if (houseY < GAME_HEIGHT + 200 && houseY > -200) {
-      // Casa izquierda
-      bgGraphics.fillStyle(0xb73a1e, 1); // Ladrillo rojo
-      bgGraphics.fillRect(10, houseY, 150, 190);
-      // Techo de zinc galvanizado
-      bgGraphics.fillStyle(0x90a4ae, 1);
-      bgGraphics.fillRect(5, houseY - 10, 165, 12);
-      // Tanque azul cilíndrico en el techo
-      bgGraphics.fillStyle(0x0277bd, 1);
-      bgGraphics.fillRoundedRect(40, houseY - 42, 36, 32, 4);
-      bgGraphics.fillStyle(0x01579b, 1);
-      bgGraphics.fillRect(36, houseY - 44, 44, 5); // Tapa
+    // Casas del barrio de ladrillos rojos y techos de zinc (comienzan sentadas en el suelo)
+    const houseBaseY = 300 + worldDownOffset;
+    if (houseBaseY < GAME_HEIGHT + 200 && houseBaseY > -250) {
+      // Casa izquierda (Ladrillos rojos de arcilla)
+      bgGraphics.fillStyle(0xb73a1e, 1);
+      bgGraphics.fillRect(10, houseBaseY, 150, 190);
 
-      // Casa derecha con platabanda y doña en la ventana
-      bgGraphics.fillStyle(0xc0392b, 1);
-      bgGraphics.fillRect(320, houseY + 30, 150, 200);
+      // Líneas de cemento entre ladrillos
+      bgGraphics.lineStyle(1.2, 0x8d6e63, 0.8);
+      for (let ly = houseBaseY + 15; ly < houseBaseY + 190; ly += 18) {
+        bgGraphics.lineBetween(10, ly, 160, ly);
+      }
+
+      // Techo de zinc galvanizado plateado con ondulaciones
+      bgGraphics.fillStyle(0x90a4ae, 1);
+      bgGraphics.fillRect(5, houseBaseY - 10, 165, 14);
       bgGraphics.fillStyle(0x78909c, 1);
-      bgGraphics.fillRect(315, houseY + 20, 160, 12);
+      for (let zx = 10; zx < 165; zx += 12) {
+        bgGraphics.fillRect(zx, houseBaseY - 10, 5, 14);
+      }
+
+      // Tanque azul cilíndrico de agua en el techo
+      bgGraphics.fillStyle(0x0277bd, 1);
+      bgGraphics.fillRoundedRect(35, houseBaseY - 42, 38, 32, 4);
+      bgGraphics.fillStyle(0x01579b, 1);
+      bgGraphics.fillRect(32, houseBaseY - 45, 44, 6); // Tapa
+
+      // Casa derecha con platabanda
+      bgGraphics.fillStyle(0xc0392b, 1);
+      bgGraphics.fillRect(320, houseBaseY + 25, 150, 190);
+      bgGraphics.lineStyle(1.2, 0x8d6e63, 0.8);
+      for (let ly = houseBaseY + 40; ly < houseBaseY + 215; ly += 18) {
+        bgGraphics.lineBetween(320, ly, 470, ly);
+      }
+
+      // Techo de zinc derecho
+      bgGraphics.fillStyle(0x90a4ae, 1);
+      bgGraphics.fillRect(315, houseBaseY + 15, 160, 14);
       // Tanque azul derecho
       bgGraphics.fillStyle(0x0277bd, 1);
-      bgGraphics.fillRoundedRect(350, houseY - 12, 36, 32, 4);
+      bgGraphics.fillRoundedRect(350, houseBaseY - 17, 38, 32, 4);
+      bgGraphics.fillStyle(0x01579b, 1);
+      bgGraphics.fillRect(347, houseBaseY - 20, 44, 6);
 
-      // Ventana con la doña venezolana asomada con sus rulos
+      // Ventana con rejas y la DOÑA VENEZOLANA asomada con rulos
       bgGraphics.fillStyle(0x212121, 1);
-      bgGraphics.fillRect(50, houseY + 45, 34, 38);
-      // Rejas
-      bgGraphics.lineStyle(1.5, 0xffffff, 0.7);
-      bgGraphics.lineBetween(58, houseY + 45, 58, houseY + 83);
-      bgGraphics.lineBetween(66, houseY + 45, 66, houseY + 83);
-      bgGraphics.lineBetween(74, houseY + 45, 74, houseY + 83);
+      bgGraphics.fillRect(45, houseBaseY + 45, 38, 42);
+      // Rejas de hierro
+      bgGraphics.lineStyle(1.6, 0xffffff, 0.8);
+      bgGraphics.lineBetween(54, houseBaseY + 45, 54, houseBaseY + 87);
+      bgGraphics.lineBetween(64, houseBaseY + 45, 64, houseBaseY + 87);
+      bgGraphics.lineBetween(74, houseBaseY + 45, 74, houseBaseY + 87);
       // Cara de la doña
       bgGraphics.fillStyle(0xd7a17c, 1);
-      bgGraphics.fillCircle(67, houseY + 62, 7);
+      bgGraphics.fillCircle(64, houseBaseY + 63, 8);
       // Rulos rosados en el cabello
       bgGraphics.fillStyle(0xf06292, 1);
-      bgGraphics.fillCircle(62, houseY + 56, 3);
-      bgGraphics.fillCircle(67, houseY + 54, 3);
-      bgGraphics.fillCircle(72, houseY + 56, 3);
-      // Bata de andar por casa
+      bgGraphics.fillCircle(58, houseBaseY + 56, 3.5);
+      bgGraphics.fillCircle(64, houseBaseY + 54, 3.5);
+      bgGraphics.fillCircle(70, houseBaseY + 56, 3.5);
+      // Bata amarilla
       bgGraphics.fillStyle(0xffd54f, 1);
-      bgGraphics.fillRect(60, houseY + 69, 14, 14);
+      bgGraphics.fillRect(56, houseBaseY + 71, 16, 16);
 
-      // Cables de luz que cruzan
-      bgGraphics.lineStyle(1.2, 0x212121, 0.6);
-      bgGraphics.lineBetween(0, houseY + 10, GAME_WIDTH, houseY + 50);
-      bgGraphics.lineBetween(0, houseY + 25, GAME_WIDTH, houseY + 65);
+      // Cables de luz que cruzan entre postes
+      bgGraphics.lineStyle(1.4, 0x212121, 0.7);
+      bgGraphics.lineBetween(0, houseBaseY + 15, GAME_WIDTH, houseBaseY + 55);
+      bgGraphics.lineBetween(0, houseBaseY + 30, GAME_WIDTH, houseBaseY + 70);
+
+      // Tendedero de ropa con camisa tricolor colgada
+      bgGraphics.lineStyle(1, 0xffffff, 0.6);
+      bgGraphics.lineBetween(170, houseBaseY + 80, 310, houseBaseY + 95);
+      bgGraphics.fillStyle(0xffd600, 1); // Franela amarilla
+      bgGraphics.fillRect(200, houseBaseY + 84, 14, 16);
+      bgGraphics.fillStyle(0x1565c0, 1); // Franela azul
+      bgGraphics.fillRect(230, houseBaseY + 88, 14, 16);
+      bgGraphics.fillStyle(0xd32f2f, 1); // Franela roja
+      bgGraphics.fillRect(260, houseBaseY + 92, 14, 16);
     }
   }
-  // 2. ZONA EL ÁVILA Y CIELO CARAQUEÑO (300 - 700m)
-  else if (alt < 700) {
-    const p = (alt - 300) / 400;
-    // Transición de azul celeste a violeta atardecer
+  // 2. ZONA EL ÁVILA Y CIELO CARAQUEÑO (250 - 650m)
+  else if (alt < 650) {
+    // Cielo crepuscular de Caracas
     bgGraphics.fillGradientStyle(0x1a237e, 0x1a237e, 0xd84315, 0xf57c00, 1);
     bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Silueta imponente del Ávila
-    bgGraphics.fillStyle(0x0e3d1c, 0.9);
+    // Desplazamiento del Ávila hacia abajo
+    const avilaOffset = (alt - 250) * 1.5;
+    const avilaY = 320 + avilaOffset;
+
+    // Silueta imponente y verde del Cerro El Ávila
+    bgGraphics.fillStyle(0x0e3d1c, 0.95);
     bgGraphics.beginPath();
-    bgGraphics.moveTo(0, 480);
-    bgGraphics.lineTo(120, 360);
-    bgGraphics.lineTo(260, 410);
-    bgGraphics.lineTo(380, 320);
-    bgGraphics.lineTo(480, 370);
-    bgGraphics.lineTo(480, 640);
-    bgGraphics.lineTo(0, 640);
+    bgGraphics.moveTo(0, avilaY + 120);
+    bgGraphics.lineTo(110, avilaY - 20);
+    bgGraphics.lineTo(240, avilaY + 30);
+    bgGraphics.lineTo(360, avilaY - 60);
+    bgGraphics.lineTo(480, avilaY);
+    bgGraphics.lineTo(480, GAME_HEIGHT);
+    bgGraphics.lineTo(0, GAME_HEIGHT);
     bgGraphics.closePath();
     bgGraphics.fillPath();
 
-    // Nubes flotantes
-    bgGraphics.fillStyle(0xffffff, 0.4);
-    bgGraphics.fillCircle(90, 200, 40);
-    bgGraphics.fillCircle(130, 200, 50);
-    bgGraphics.fillCircle(170, 200, 35);
+    // Nubes suaves
+    bgGraphics.fillStyle(0xffffff, 0.35);
+    bgGraphics.fillCircle(80, 140, 45);
+    bgGraphics.fillCircle(125, 140, 55);
+    bgGraphics.fillCircle(170, 140, 40);
+
+    bgGraphics.fillCircle(340, 180, 40);
+    bgGraphics.fillCircle(380, 180, 50);
   }
-  // 3. ZONA ATMÓSFERA Y SATÉLITE SIMÓN BOLÍVAR (700 - 1200m)
-  else if (alt < 1200) {
-    bgGraphics.fillGradientStyle(0x020813, 0x020813, 0x0d2040, 0x0d2040, 1);
+  // 3. ZONA ATMÓSFERA Y SATÉLITE SIMÓN BOLÍVAR (650 - 1100m)
+  else if (alt < 1100) {
+    // Cielo oscureciéndose a noche espacial
+    bgGraphics.fillGradientStyle(0x020813, 0x020813, 0x0a1a33, 0x0a1a33, 1);
     bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     // Estrellas titilantes
     bgGraphics.fillStyle(0xffffff, 0.9);
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 35; i++) {
       const sx = ((i * 73) % GAME_WIDTH);
-      const sy = (((i * 97) + alt * 0.5) % GAME_HEIGHT);
+      const sy = (((i * 97) + alt * 0.4) % GAME_HEIGHT);
       bgGraphics.fillCircle(sx, sy, (i % 3 === 0 ? 2 : 1.2));
     }
 
     // Curvatura de la Tierra abajo
-    bgGraphics.fillStyle(0x1565c0, 0.6);
+    bgGraphics.fillStyle(0x1565c0, 0.7);
     bgGraphics.beginPath();
-    bgGraphics.arc(240, 950, 400, Math.PI, 0, false);
+    bgGraphics.arc(240, 920, 380, Math.PI, 0, false);
     bgGraphics.fillPath();
 
     // Satélite Simón Bolívar orbitando
-    const satY = ((alt * 0.4) % 500) + 70;
-    bgGraphics.fillStyle(0xffd700, 1); // Cuerpo central dorado
-    bgGraphics.fillRect(360, satY, 20, 16);
-    // Paneles solares azules
+    const satY = ((alt * 0.5) % 450) + 90;
+    bgGraphics.fillStyle(0xffd700, 1); // Módulo dorado
+    bgGraphics.fillRect(360, satY, 22, 16);
+    // Paneles solares
     bgGraphics.fillStyle(0x0288d1, 1);
-    bgGraphics.fillRect(330, satY + 4, 25, 8);
-    bgGraphics.fillRect(385, satY + 4, 25, 8);
+    bgGraphics.fillRect(328, satY + 4, 28, 8);
+    bgGraphics.fillRect(386, satY + 4, 28, 8);
+    // Antena
+    bgGraphics.lineStyle(1.5, 0xffffff, 1);
+    bgGraphics.lineBetween(371, satY, 371, satY - 8);
+    bgGraphics.strokeCircle(371, satY - 10, 4);
   }
-  // 4. ZONA ESPACIO PROFUNDO Y AGUJERO NEGRO (1200m+)
+  // 4. ZONA ESPACIO PROFUNDO Y AGUJERO NEGRO (1100m+)
   else {
-    bgGraphics.fillGradientStyle(0x000000, 0x000000, 0x120422, 0x120422, 1);
+    bgGraphics.fillGradientStyle(0x000000, 0x000000, 0x140526, 0x140526, 1);
     bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Nebulosa cósmica púrpura/magenta
-    bgGraphics.fillStyle(0x8e24aa, 0.25);
-    bgGraphics.fillCircle(160, 280, 140);
-    bgGraphics.fillStyle(0x00bcd4, 0.2);
-    bgGraphics.fillCircle(320, 360, 120);
+    // Nebulosa cósmica violeta y turquesa
+    bgGraphics.fillStyle(0x8e24aa, 0.28);
+    bgGraphics.fillCircle(140, 260, 130);
+    bgGraphics.fillStyle(0x00bcd4, 0.22);
+    bgGraphics.fillCircle(340, 360, 110);
 
     // Estrellas
     bgGraphics.fillStyle(0xffffff, 0.95);
-    for (let i = 0; i < 45; i++) {
+    for (let i = 0; i < 50; i++) {
       const sx = ((i * 67) % GAME_WIDTH);
-      const sy = (((i * 89) + alt * 0.4) % GAME_HEIGHT);
+      const sy = (((i * 89) + alt * 0.35) % GAME_HEIGHT);
       bgGraphics.fillCircle(sx, sy, (i % 4 === 0 ? 2.5 : 1.2));
     }
 
-    // Agujero negro cósmico con disco de acreción
-    bgGraphics.lineStyle(4, 0xffa000, 0.8);
-    bgGraphics.strokeEllipse(240, 200, 70, 24);
+    // Agujero negro cósmico con disco de acreción giratorio
+    const rot = (alt * 0.04);
+    bgGraphics.lineStyle(4, 0xffa000, 0.85);
+    bgGraphics.strokeEllipse(240, 190, 75, 24);
     bgGraphics.lineStyle(2, 0xffffff, 0.9);
-    bgGraphics.strokeEllipse(240, 200, 80, 28);
+    bgGraphics.strokeEllipse(240, 190, 85, 28);
     bgGraphics.fillStyle(0x000000, 1);
-    bgGraphics.fillCircle(240, 200, 22);
+    bgGraphics.fillCircle(240, 190, 22);
   }
 }
 
@@ -964,6 +1050,9 @@ function renderMangoTrunks() {
   treeGraphics.clear();
 
   const trunkWidth = 26;
+  const segmentHeight = 80;
+  // Los nudos y hojas bajan suavemente al subir (efecto de trepada continua)
+  const scrollOffset = (altitude * 3.5) % segmentHeight;
 
   TRUNK_X.forEach((tx) => {
     // Sombra del tronco
@@ -980,19 +1069,21 @@ function renderMangoTrunks() {
     treeGraphics.fillStyle(0x8d6e63, 0.85);
     treeGraphics.fillRect(tx - trunkWidth / 2 + 6, 0, 3, GAME_HEIGHT);
 
-    // Nudos y ramitas de mango
+    // Nudos de la corteza que bajan con el scroll
     treeGraphics.fillStyle(0x3e2723, 1);
     treeGraphics.lineStyle(2, 0x8d6e63, 0.8);
-    for (let y = 30; y < GAME_HEIGHT; y += 85) {
-      treeGraphics.fillEllipse(tx, y, trunkWidth + 4, 6);
-      treeGraphics.strokeEllipse(tx, y, trunkWidth + 4, 6);
+    for (let y = -segmentHeight; y < GAME_HEIGHT + segmentHeight; y += segmentHeight) {
+      const nodeY = y + scrollOffset;
+      treeGraphics.fillEllipse(tx, nodeY, trunkWidth + 4, 6);
+      treeGraphics.strokeEllipse(tx, nodeY, trunkWidth + 4, 6);
     }
 
     // Hojitas verdes de mango saliendo a los lados
     treeGraphics.fillStyle(0x2e7d32, 0.9);
-    for (let y = 70; y < GAME_HEIGHT; y += 130) {
-      treeGraphics.fillTriangle(tx + 13, y, tx + 27, y - 5, tx + 22, y + 5);
-      treeGraphics.fillTriangle(tx - 13, y + 50, tx - 27, y + 45, tx - 22, y + 55);
+    for (let y = -segmentHeight * 1.5; y < GAME_HEIGHT + segmentHeight * 1.5; y += 140) {
+      const leafY = y + scrollOffset;
+      treeGraphics.fillTriangle(tx + 13, leafY, tx + 27, leafY - 5, tx + 22, leafY + 5);
+      treeGraphics.fillTriangle(tx - 13, leafY + 50, tx - 27, leafY + 45, tx - 22, leafY + 55);
     }
   });
 }
@@ -1129,8 +1220,8 @@ function triggerChamitoDeath() {
   sfx.chamitoFall();
 
   chamito.isDying = true;
-  chamito.deathVy = -8.5; // Salto inicial hacia arriba
-  chamito.deathVx = chamito.side === 1 ? 3.0 : -3.0; // Despegarse del tronco hacia el vacío
+  chamito.deathVy = -9.0; // Salto inicial hacia arriba
+  chamito.deathVx = chamito.side === 1 ? 3.5 : -3.5; // Despegarse del tronco hacia el vacío
   chamito.sprite.setTexture('tex_chamito_hurt');
 }
 
@@ -1166,7 +1257,7 @@ function updateHUD() {
 function showMenuUI(visible) {
   if (visible) {
     centerMenuText.setText(
-      'CHAMITO\n★ LA MATA DE MANGO ★\n\nEsquiva las hormigas\ny agarra los mangos\n\nPresiona ENTER o W\npara jugar'
+      'CHAMITO\n★ LA MATA DE MANGO ★\n\nEsquiva las hormigas\ny agarra los mangos\n\nPresiona ENTER o W / ↑\npara jugar'
     ).setVisible(true);
   }
 }
