@@ -176,18 +176,61 @@ class ArcadeAudio {
   startBGM() {
     if (this.bgmTimer) return;
     this.bgmStep = 0;
-    const bass = [130, 130, 164, 164, 146, 146, 196, 174];
-    const lead = [523, 659, 784, 659, 587, 698, 784, 880];
+
+    // Tema Chiptune 8-bit Venezolano ("Moliendo Café" - Hugo Blanco)
+    // Melodía alegre, icónica y pegajosa que acompaña al Chamito
+    const melody = [
+      330, 440, 494, 523, 494, 440, 494, 415, 330, 0,
+      330, 415, 440, 494, 440, 415, 440, 0,
+      440, 494, 523, 587, 523, 494, 523, 440, 0,
+      523, 587, 659, 587, 523, 494, 523, 494, 440, 415, 440, 0, 0
+    ];
+
+    // Bajo tropical venezolano (Tumbao / Joropo sincopado en Am, E7 y Dm)
+    const bassline = [
+      110, 165, 110, 165, 110, 165, 82, 123, 82, 123,
+      82, 123, 82, 123, 110, 165, 110, 165,
+      147, 220, 147, 220, 110, 165, 110, 165,
+      147, 220, 110, 165, 82, 123, 82, 123, 110, 165, 110, 165, 110, 0
+    ];
+
     const tick = () => {
       if (!this.muted && this.ctx) {
-        this.playTone(bass[this.bgmStep % bass.length], 'triangle', 0.09, 0.05);
-        if (this.bgmStep % 2 === 0) {
-          this.playTone(lead[(this.bgmStep / 2) % lead.length], 'square', 0.07, 0.03);
+        const step = this.bgmStep % melody.length;
+        const note = melody[step];
+        const bass = bassline[step % bassline.length];
+
+        const isSuper = typeof superTimer !== 'undefined' && superTimer > 0;
+        const isSpace = typeof altitude !== 'undefined' && altitude >= 750;
+
+        // 1. Melodía Chiptune (en tierra es onda cuadrada arcade; en el espacio es sintetizador cósmico; con super arepa brilla en agudos)
+        if (note > 0) {
+          const leadFreq = isSuper ? note * 1.5 : (isSpace ? note * 1.2 : note);
+          const leadWave = isSuper ? 'triangle' : (isSpace ? 'sine' : 'square');
+          const leadVol = isSuper ? 0.07 : (isSpace ? 0.05 : 0.045);
+          this.playTone(leadFreq, leadWave, 0.12, leadVol);
+        }
+
+        // 2. Bajo tropical cálido
+        if (bass > 0) {
+          const bassFreq = isSpace ? bass * 1.5 : bass;
+          const bassWave = isSpace ? 'sine' : 'triangle';
+          this.playTone(bassFreq, bassWave, 0.14, 0.055);
+        }
+
+        // 3. Maraquita / Shaker rítmico en contratiempo caribeño
+        if (this.bgmStep % 2 === 1) {
+          const shakerPitch = isSpace ? 2200 : (1200 + (this.bgmStep % 4) * 90);
+          this.playTone(shakerPitch, 'sawtooth', 0.02, 0.012);
         }
       }
+
       this.bgmStep++;
-      this.bgmTimer = setTimeout(tick, 180);
+      // Con la Super Arepa se acelera el tempo para máxima emoción arcade!
+      const stepDuration = (typeof superTimer !== 'undefined' && superTimer > 0) ? 128 : 160;
+      this.bgmTimer = setTimeout(tick, stepDuration);
     };
+
     tick();
   }
 
