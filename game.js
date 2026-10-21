@@ -306,15 +306,17 @@ function create() {
   drawCRTScanlines(this);
 
   // 5. Menú Inicial
-  centerMenuText = this.add.text(240, 300, '', {
+  centerMenuText = this.add.text(240, 310, '', {
     fontFamily: 'monospace',
-    fontSize: '17px',
+    fontSize: '18px',
     color: '#ffe600',
     align: 'center',
     backgroundColor: '#031208',
-    padding: { x: 18, y: 14 },
-    lineSpacing: 6,
-  }).setOrigin(0.5).setDepth(50);
+    padding: { x: 20, y: 16 },
+    lineSpacing: 8,
+    stroke: '#000000',
+    strokeThickness: 3,
+  }).setOrigin(0.5).setDepth(110);
 
   showMenuUI(true);
   renderDynamicBackground();
@@ -577,27 +579,73 @@ function generateProceduralTextures(scene) {
   gAF.destroy();
 }
 
-// --- HUD SUPERIOR ELEGANTE ---
+// --- HUD SUPERIOR ELEGANTE Y LEGIBLE ---
 function createSleekHUD(scene) {
-  hudGraphics = scene.add.graphics().setDepth(30);
+  // Fondo del HUD en Depth 100 (por encima del juego y de las scanlines para máxima nitidez)
+  hudGraphics = scene.add.graphics().setDepth(100);
 
-  hudGraphics.fillStyle(0x021107, 0.85);
-  hudGraphics.fillRect(0, 0, GAME_WIDTH, 42);
-  hudGraphics.lineStyle(1.5, 0x1fa347, 1);
-  hudGraphics.lineBetween(0, 42, GAME_WIDTH, 42);
+  // Barra de cabecera arcade de 50px de altura con fondo oscuro satinado
+  hudGraphics.fillStyle(0x021308, 0.94);
+  hudGraphics.fillRect(0, 0, GAME_WIDTH, 50);
 
-  const font = { fontFamily: 'monospace', fontSize: '13px', color: '#ffffff', fontStyle: 'bold' };
+  // Borde inferior arcade de neón verde y sutil resplandor
+  hudGraphics.lineStyle(2, 0x1fa347, 1);
+  hudGraphics.lineBetween(0, 50, GAME_WIDTH, 50);
+  hudGraphics.lineStyle(1, 0x39ff6e, 0.5);
+  hudGraphics.lineBetween(0, 48, GAME_WIDTH, 48);
 
-  hudTexts.lives = scene.add.text(12, 12, '❤️❤️❤️', { fontSize: '14px' }).setDepth(31);
-  hudTexts.mangos = scene.add.text(110, 13, '0 🥭', { fontFamily: 'monospace', fontSize: '13px', color: '#ffe600', fontStyle: 'bold' }).setDepth(31);
-  hudTexts.altitude = scene.add.text(210, 13, '0m', { fontFamily: 'monospace', fontSize: '13px', color: '#80e27e' }).setDepth(31);
-  hudTexts.score = scene.add.text(GAME_WIDTH - 16, 13, '0', font).setOrigin(1, 0).setDepth(31);
+  // Separadores verticales entre métricas
+  hudGraphics.lineStyle(1, 0x1a4a26, 0.6);
+  hudGraphics.lineBetween(112, 6, 112, 44);
+  hudGraphics.lineBetween(228, 6, 228, 44);
+  hudGraphics.lineBetween(344, 6, 344, 44);
+
+  // Estilos de fuentes claros y grandes
+  const labelStyle = { fontFamily: 'monospace', fontSize: '9px', color: '#80e27e', fontStyle: 'bold' };
+
+  // 1. Vidas (Corazones)
+  scene.add.text(14, 6, 'VIDAS', labelStyle).setDepth(101);
+  hudTexts.lives = scene.add.text(12, 19, '❤️❤️❤️', { fontSize: '18px' }).setDepth(101);
+
+  // 2. Mangos
+  scene.add.text(124, 6, 'MANGOS', { ...labelStyle, color: '#ffe600' }).setDepth(101);
+  hudTexts.mangos = scene.add.text(122, 19, '0 🥭', {
+    fontFamily: 'monospace',
+    fontSize: '17px',
+    color: '#ffe600',
+    fontStyle: 'bold',
+    stroke: '#000000',
+    strokeThickness: 3,
+  }).setDepth(101);
+
+  // 3. Altura (Metros)
+  scene.add.text(240, 6, 'ALTURA', labelStyle).setDepth(101);
+  hudTexts.altitude = scene.add.text(238, 19, '0m', {
+    fontFamily: 'monospace',
+    fontSize: '17px',
+    color: '#69f0ae',
+    fontStyle: 'bold',
+    stroke: '#000000',
+    strokeThickness: 3,
+  }).setDepth(101);
+
+  // 4. Puntaje
+  scene.add.text(GAME_WIDTH - 14, 6, 'PUNTAJE', { ...labelStyle, color: '#ffffff' }).setOrigin(1, 0).setDepth(101);
+  hudTexts.score = scene.add.text(GAME_WIDTH - 14, 18, '0', {
+    fontFamily: 'monospace',
+    fontSize: '19px',
+    color: '#ffffff',
+    fontStyle: 'bold',
+    stroke: '#000000',
+    strokeThickness: 4,
+  }).setOrigin(1, 0).setDepth(101);
 }
 
 function drawCRTScanlines(scene) {
   const g = scene.add.graphics().setDepth(99);
   g.lineStyle(1, 0x000000, 0.28);
-  for (let y = 0; y < GAME_HEIGHT; y += 4) {
+  // Comenzar scanlines a partir de y = 52 para que el HUD superior quede 100% nítido y legible
+  for (let y = 52; y < GAME_HEIGHT; y += 4) {
     g.lineBetween(0, y, GAME_WIDTH, y);
   }
 }
@@ -1219,11 +1267,17 @@ function triggerGameOver() {
 
 function updateHUD() {
   let hearts = '';
-  for (let i = 0; i < 3; i++) hearts += i < lives ? '❤️ ' : '🖤 ';
+  for (let i = 0; i < 3; i++) hearts += i < lives ? '❤️' : '🖤';
   hudTexts.lives.setText(hearts);
   hudTexts.mangos.setText(`${mangosCount} 🥭`);
   hudTexts.altitude.setText(`${Math.floor(altitude)}m`);
-  hudTexts.score.setText(`${score}`);
+  if (superTimer > 0) {
+    hudTexts.score.setText(`${score} ★`);
+    hudTexts.score.setColor('#ffe600');
+  } else {
+    hudTexts.score.setText(`${score}`);
+    hudTexts.score.setColor('#ffffff');
+  }
 }
 
 function showMenuUI(visible) {

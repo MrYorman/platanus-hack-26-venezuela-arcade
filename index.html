@@ -125,19 +125,27 @@
     .key-badge {
       background: #092c13;
       color: var(--crt-gold);
-      padding: 2px 6px;
       border-radius: 4px;
       border: 1px solid var(--crt-border);
-      font-size: clamp(8px, 1.1vw, 9px);
+      font-size: 9px;
       box-shadow: 0 0 8px rgba(31, 163, 71, 0.4);
       text-shadow: 0 0 6px rgba(255, 230, 0, 0.7);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       line-height: 1;
       text-align: center;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+
+    .key-badge.arrow {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1;
     }
 
     .btn-top {
@@ -165,11 +173,11 @@
       transform: translateY(-1px);
     }
 
-    /* Main Container (Arcade Screen + Side Panel) */
+    /* Main Container (Alineado arriba con flex-start para que las tarjetas no caigan abajo!) */
     #main-container {
       display: flex;
-      gap: clamp(10px, 2vw, 20px);
-      align-items: center;
+      gap: clamp(14px, 2.2vw, 22px);
+      align-items: flex-start; /* Alineado en la parte superior del marco arcade */
       justify-content: center;
       width: 100%;
     }
@@ -231,12 +239,12 @@
       z-index: 5;
     }
 
-    /* Side / Info Panel CRT */
+    /* Side / Info Panel CRT (Alineado arriba, llena la altura vertical) */
     #side-panel {
-      width: 270px;
+      width: 290px;
       display: flex;
       flex-direction: column;
-      gap: clamp(10px, 1.8vh, 16px);
+      gap: 12px;
       flex-shrink: 0;
     }
 
@@ -244,7 +252,7 @@
       background: rgba(3, 18, 8, 0.92);
       border: 2px solid var(--crt-border);
       border-radius: 10px;
-      padding: clamp(10px, 1.6vh, 14px);
+      padding: clamp(10px, 1.4vh, 13px);
       box-shadow: 
         0 0 16px rgba(31, 163, 71, 0.35), 
         inset 0 0 20px rgba(0, 0, 0, 0.7);
@@ -254,7 +262,7 @@
     .card h2 {
       font-size: 9px;
       color: var(--crt-gold);
-      margin-bottom: 10px;
+      margin-bottom: 9px;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -268,7 +276,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 9px;
+      margin-bottom: 8px;
       font-size: 9px;
       line-height: 1.4;
     }
@@ -296,7 +304,7 @@
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 7px;
       font-size: 8px;
       line-height: 1.5;
       color: #bbf7cb;
@@ -305,7 +313,7 @@
     .instructions-list li {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 8px;
       text-shadow: 0 0 4px rgba(57, 255, 110, 0.3);
     }
 
@@ -332,13 +340,14 @@
     @media (max-width: 860px) {
       #main-container {
         flex-direction: column;
+        align-items: center;
       }
       #side-panel {
         width: min(100%, 480px);
-        flex-direction: row;
+        flex-direction: column;
       }
       .card {
-        flex: 1;
+        width: 100%;
       }
     }
   </style>
@@ -368,17 +377,17 @@
         <span class="key-badge">S</span>
         <span class="key-badge">D</span>
         <span>/</span>
-        <span class="key-badge">↑</span>
-        <span class="key-badge">↓</span>
-        <span class="key-badge">←</span>
-        <span class="key-badge">→</span>
+        <span class="key-badge arrow">↑</span>
+        <span class="key-badge arrow">↓</span>
+        <span class="key-badge arrow">←</span>
+        <span class="key-badge arrow">→</span>
       </div>
       <div>
         <button id="btnMute" class="btn-top" onclick="toggleAudio()">🔊 SONIDO: ON</button>
       </div>
     </header>
 
-    <!-- Main Game & Info Area -->
+    <!-- Main Game & Info Area (Alineado arriba con flex-start) -->
     <div id="main-container">
       
       <!-- Marco Arcade con Pantalla CRT -->
@@ -387,26 +396,26 @@
         <div class="crt-screen-fx"></div>
       </div>
 
-      <!-- Dashboard CRT (Tarjetas laterales en HTML, no dentro del juego!) -->
+      <!-- Dashboard CRT (Alineado en el tope del marco, altura perfectamente balanceada) -->
       <div id="side-panel">
-        <!-- Tarjeta de Controles CRT -->
+        <!-- Tarjeta 1: Controles CRT -->
         <div class="card">
           <h2>🎮 CÓMO JUGAR</h2>
           <ul class="instructions-list">
             <li>
-              <span class="key-badge">W</span> / <span class="key-badge">↑</span>
+              <span class="key-badge">W</span> / <span class="key-badge arrow">↑</span>
               <span>TREPAR ARRIBA</span>
             </li>
             <li>
-              <span class="key-badge">S</span> / <span class="key-badge">↓</span>
+              <span class="key-badge">S</span> / <span class="key-badge arrow">↓</span>
               <span>DESLIZAR ABAJO</span>
             </li>
             <li>
-              <span class="key-badge">A</span> / <span class="key-badge">←</span>
+              <span class="key-badge">A</span> / <span class="key-badge arrow">←</span>
               <span>SALTAR IZQUIERDA</span>
             </li>
             <li>
-              <span class="key-badge">D</span> / <span class="key-badge">→</span>
+              <span class="key-badge">D</span> / <span class="key-badge arrow">→</span>
               <span>SALTAR DERECHA</span>
             </li>
             <li>
@@ -420,7 +429,7 @@
           </ul>
         </div>
 
-        <!-- Tarjeta de Estadísticas CRT -->
+        <!-- Tarjeta 2: Estadísticas y Récord CRT -->
         <div class="card">
           <h2>🏆 TU RÉCORD</h2>
           <div class="stat-row">
@@ -434,6 +443,23 @@
           <div class="stat-row">
             <span class="stat-label">MANGOS:</span>
             <span id="totalMangosText" class="stat-val gold">0 🥭</span>
+          </div>
+        </div>
+
+        <!-- Tarjeta 3: Poderes y Objetos -->
+        <div class="card">
+          <h2>🥭 PODERES Y MANGOS</h2>
+          <div class="stat-row">
+            <span class="stat-label">MANGO:</span>
+            <span class="stat-val" style="color: #69f0ae;">+20 PTS 🥭</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">DE ORO:</span>
+            <span class="stat-val gold">+150 PTS 🌟</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">SUPER:</span>
+            <span class="stat-val gold">INVENCIBLE (7s)</span>
           </div>
         </div>
       </div>
