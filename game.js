@@ -271,6 +271,7 @@ let treeGraphics;
 let hudGraphics;
 let hudTexts = {};
 let centerMenuText;
+let starShield = [];
 
 function create() {
   currentScene = this;
@@ -296,8 +297,13 @@ function create() {
   bgGraphics = this.add.graphics().setDepth(1);
   treeGraphics = this.add.graphics().setDepth(5);
 
-  // 2. Sprite del Chamito
+  // 2. Sprite del Chamito y sus 3 Estrellas de Poder de la Arepa
   chamito.sprite = this.add.sprite(chamito.x, chamito.y, 'tex_chamito').setDepth(20);
+  starShield = [
+    this.add.sprite(0, 0, 'tex_star').setDepth(25).setVisible(false),
+    this.add.sprite(0, 0, 'tex_star').setDepth(25).setVisible(false),
+    this.add.sprite(0, 0, 'tex_star').setDepth(25).setVisible(false),
+  ];
 
   // 3. HUD superior elegante (delgado, no tapa el juego)
   createSleekHUD(this);
@@ -457,24 +463,58 @@ function generateProceduralTextures(scene) {
   gM.generateTexture('tex_mango', 26, 28);
   gM.destroy();
 
-  // 4. Mango de Oro
-  const gMG = scene.make.graphics({ x: 0, y: 0, add: false });
-  gMG.fillStyle(0xffd700, 1);
-  gMG.fillCircle(13, 13, 12);
-  gMG.fillStyle(0xffea00, 1);
-  gMG.fillCircle(13, 13, 9);
-  gMG.fillStyle(0xffffff, 1);
-  gMG.fillCircle(10, 9, 3.5);
-  gMG.lineStyle(1.6, 0xffffff, 1);
-  gMG.beginPath();
-  gMG.moveTo(13, 1); gMG.lineTo(13, 5);
-  gMG.moveTo(13, 21); gMG.lineTo(13, 25);
-  gMG.moveTo(1, 13); gMG.lineTo(5, 13);
-  gMG.moveTo(21, 13); gMG.lineTo(25, 13);
-  gMG.strokePath();
+  // 4. AREPA VENEZOLANA DORADA (Item de Poder Especial Tostadito)
+  const gA = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Sombra suave
+  gA.fillStyle(0x000000, 0.35);
+  gA.fillCircle(14, 15, 12);
+  // Masa de maíz dorado y tostado
+  gA.fillStyle(0xd99b26, 1);
+  gA.fillCircle(14, 13, 12);
+  gA.fillStyle(0xf5cb5c, 1);
+  gA.fillCircle(14, 13, 10.5);
+  gA.fillStyle(0xfff194, 0.9);
+  gA.fillCircle(13, 12, 7.5);
+  // Quemaditos de budare tostados y crujientes
+  gA.lineStyle(2, 0x5d4037, 0.95);
+  gA.lineBetween(7, 9, 21, 9);
+  gA.lineBetween(5, 13, 23, 13);
+  gA.lineBetween(8, 17, 20, 17);
+  // Brillo de mantequilla derretida
+  gA.fillStyle(0xffffff, 0.95);
+  gA.fillCircle(10, 8, 2);
+  // Chispas doradas de poder alrededor de la arepa
+  gA.fillStyle(0xffd700, 1);
+  gA.fillRect(1, 13, 3, 2);
+  gA.fillRect(24, 13, 3, 2);
+  gA.fillRect(13, 1, 2, 3);
+  gA.fillRect(13, 24, 2, 3);
+  gA.generateTexture('tex_arepa', 28, 28);
+  gA.generateTexture('tex_mango_gold', 28, 28); // Compatibilidad
+  gA.destroy();
 
-  gMG.generateTexture('tex_mango_gold', 26, 26);
-  gMG.destroy();
+  // 5. ESTRELLA DE PODER RETRO (Gira en escudo alrededor del Chamito con la Arepa)
+  const gS = scene.make.graphics({ x: 0, y: 0, add: false });
+  const starPoints = [];
+  const cx = 11, cy = 11, outerR = 9.5, innerR = 4.2;
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = (i * Math.PI) / 5 - Math.PI / 2;
+    starPoints.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
+  }
+  gS.fillStyle(0xffeb3b, 1);
+  gS.fillPoints(starPoints, true);
+  gS.lineStyle(1.4, 0x000000, 1);
+  gS.strokePoints(starPoints, true);
+  // Ojitos verticales arcade
+  gS.fillStyle(0x000000, 1);
+  gS.fillRect(9, 9, 1.4, 3.5);
+  gS.fillRect(12, 9, 1.4, 3.5);
+  // Brillo
+  gS.fillStyle(0xffffff, 0.9);
+  gS.fillCircle(8, 7, 1.5);
+  gS.generateTexture('tex_star', 22, 22);
+  gS.destroy();
 
   // 5. HORMIGA ROJA COMPACTA (18px de ancho: las 6 patas caben 100% sobre el tronco!)
   const gAR = scene.make.graphics({ x: 0, y: 0, add: false });
@@ -577,6 +617,52 @@ function generateProceduralTextures(scene) {
 
   gAF.generateTexture('tex_ant_fire', 18, 26);
   gAF.destroy();
+
+  // 8. PLATILLO VOLADOR ALIENÍGENA (Enemigo en el Espacio)
+  const gU1 = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Haz de energía inferior
+  gU1.fillStyle(0x00e5ff, 0.35);
+  gU1.fillTriangle(13, 16, 4, 25, 22, 25);
+  // Disco metálico
+  gU1.fillStyle(0x00e5ff, 1);
+  gU1.fillEllipse(13, 14, 24, 9);
+  gU1.fillStyle(0x00838f, 1);
+  gU1.fillEllipse(13, 14, 18, 6);
+  // Cúpula transparente
+  gU1.fillStyle(0xb2ebf2, 0.85);
+  gU1.fillCircle(13, 9, 6.5);
+  // Marcianito verde adentro con grandes ojos negros
+  gU1.fillStyle(0x76ff03, 1);
+  gU1.fillCircle(13, 9.5, 3.5);
+  gU1.fillStyle(0x000000, 1);
+  gU1.fillCircle(11.5, 9, 1.2);
+  gU1.fillCircle(14.5, 9, 1.2);
+  // Luces de neón en el borde
+  gU1.fillStyle(0xffeb3b, 1); gU1.fillCircle(6, 15, 1.4);
+  gU1.fillStyle(0xff1744, 1); gU1.fillCircle(13, 16, 1.6);
+  gU1.fillStyle(0x39ff6e, 1); gU1.fillCircle(20, 15, 1.4);
+  gU1.generateTexture('tex_ufo_scout', 26, 26);
+  gU1.destroy();
+
+  // 9. NAVE ALIENÍGENA DE ATAQUE VELOZ (Enemigo en el Espacio)
+  const gU2 = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Alas delta cibernéticas rojas
+  gU2.fillStyle(0xd50000, 1);
+  gU2.fillTriangle(13, 2, 2, 20, 24, 20);
+  // Núcleo de mando oscuro
+  gU2.fillStyle(0x212121, 1);
+  gU2.fillTriangle(13, 6, 7, 18, 19, 18);
+  // Sensor / ojo cibernético amarillo y rojo
+  gU2.fillStyle(0xffff00, 1);
+  gU2.fillCircle(13, 12, 2.5);
+  gU2.fillStyle(0xff1744, 1);
+  gU2.fillCircle(13, 12, 1.2);
+  // Propulsores de plasma azul
+  gU2.fillStyle(0x00e5ff, 0.95);
+  gU2.fillTriangle(5, 20, 9, 20, 7, 25);
+  gU2.fillTriangle(17, 20, 21, 20, 19, 25);
+  gU2.generateTexture('tex_ufo_fighter', 26, 26);
+  gU2.destroy();
 }
 
 // --- HUD SUPERIOR ELEGANTE Y LEGIBLE ---
@@ -733,6 +819,7 @@ function startFreshGame() {
   ants.forEach((a) => a.sprite.destroy());
   mangos.forEach((m) => m.sprite.destroy());
   floatingTexts.forEach((t) => t.destroy());
+  starShield.forEach((s) => s && s.setVisible(false));
   ants = [];
   mangos = [];
   floatingTexts = [];
@@ -792,9 +879,25 @@ function handlePlayerInput(dt) {
 
   if (superTimer > 0) {
     superTimer -= dt;
-    chamito.sprite.setTint(0xffeb3b);
+    // Efecto Arcoíris brillante de Super Poder en el Chamito
+    const rainbowColors = [0xffd700, 0xff5722, 0x00e676, 0x00e5ff, 0xe040fb, 0xffff00];
+    const cIdx = Math.floor((7.5 - superTimer) * 12) % rainbowColors.length;
+    chamito.sprite.setTint(rainbowColors[cIdx]);
+
+    // Animar las 3 estrellas de poder girando alrededor del Chamito (estilo estrella de Mario / Mono)
+    const starAngle = (7.5 - superTimer) * 7.5;
+    const starRadius = 28;
+    starShield.forEach((star, idx) => {
+      if (star) {
+        star.setVisible(true);
+        const a = starAngle + (idx * ((Math.PI * 2) / 3));
+        star.setPosition(chamito.x + Math.cos(a) * starRadius, chamito.y + Math.sin(a) * starRadius);
+        star.setRotation(starAngle * 1.5);
+      }
+    });
   } else {
     chamito.sprite.clearTint();
+    starShield.forEach((star) => { if (star) star.setVisible(false); });
   }
 }
 
@@ -823,29 +926,30 @@ function moveChamitoRight() {
 }
 
 function updateWorldProgress(dt) {
-  // Los metros aumentan rápido solo si el chamito trepa y se mantiene arriba
+  // Los metros aumentan más rápido si el chamito trepa con ganas y se mantiene arriba
   const heightBoost = Math.max(0.1, (550 - chamito.y) / 320);
-  const climbEffort = held.P1_U ? 3.8 : (held.P1_D ? 0.05 : 0.5);
+  const climbEffort = held.P1_U ? 4.0 : (held.P1_D ? 0.05 : 0.6);
   const effectiveClimb = climbEffort * heightBoost;
 
-  altitude += effectiveClimb * dt * 1.6; // Ritmo realista de metros
-  score += Math.round(effectiveClimb * dt * 3.5);
+  altitude += effectiveClimb * dt * 2.2; // Ritmo ágil para explorar el barrio, El Ávila y alcanzar el espacio
+  score += Math.round(effectiveClimb * dt * 4.0);
 
   if (altitude > bestAltitude) {
     bestAltitude = Math.floor(altitude);
   }
 
-  // Spawn Hormigas justas y espaciadas
+  // Spawn de Enemigos (Hormigas en la tierra, Naves alienígenas en el espacio)
   antSpawnTimer += dt;
-  const antInterval = Math.max(1.4, 3.0 - altitude * 0.0006);
+  const isSpace = altitude >= 750;
+  const antInterval = isSpace ? Math.max(1.1, 2.3 - (altitude - 750) * 0.0006) : Math.max(1.3, 2.9 - altitude * 0.001);
   if (antSpawnTimer > antInterval) {
     antSpawnTimer = 0;
     spawnAnt();
   }
 
-  // Spawn Mangos
+  // Spawn Mangos y Arepas
   mangoSpawnTimer += dt;
-  if (mangoSpawnTimer > 2.0) {
+  if (mangoSpawnTimer > 1.9) {
     mangoSpawnTimer = 0;
     spawnMango();
   }
@@ -858,10 +962,10 @@ function renderDynamicBackground() {
 
   const alt = altitude;
 
-  // 1. ZONA BARRIO VENEZOLANO (0 a 500 metros)
+  // 1. ZONA BARRIO VENEZOLANO (0 a 380 metros)
   // Al subir el chamito, el piso del patio y las casas descienden suavemente
-  if (alt < 500) {
-    const worldDownOffset = alt * 1.5;
+  if (alt < 380) {
+    const worldDownOffset = alt * 1.8;
 
     // Cielo diurno caraqueño
     bgGraphics.fillGradientStyle(0x1976d2, 0x1976d2, 0x64b5f6, 0x64b5f6, 1);
@@ -967,15 +1071,15 @@ function renderDynamicBackground() {
       bgGraphics.fillRect(260, houseBaseY + 87, 14, 16);
     }
   }
-  // 2. ZONA EL ÁVILA Y CIELO CARAQUEÑO (500 a 1200 metros)
-  else if (alt < 1200) {
-    const p = (alt - 500) / 700;
+  // 2. ZONA EL ÁVILA Y CIELO CARAQUEÑO (380 a 750 metros)
+  else if (alt < 750) {
+    const p = (alt - 380) / 370;
     // Transición gradual de azul claro a naranja atardecer
     bgGraphics.fillGradientStyle(0x1565c0, 0x1565c0, 0xe65100, 0xf57c00, 1);
     bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Silueta imponente y verde del Cerro El Ávila
-    const avilaY = 340 + ((alt - 500) * 0.4);
+    // Silueta imponente y verde del Cerro El Ávila que va bajando al trepar
+    const avilaY = 320 + ((alt - 380) * 0.45);
     bgGraphics.fillStyle(0x0e3d1c, 0.95);
     bgGraphics.beginPath();
     bgGraphics.moveTo(0, avilaY + 90);
@@ -996,8 +1100,8 @@ function renderDynamicBackground() {
     bgGraphics.fillCircle(340, 170, 40);
     bgGraphics.fillCircle(380, 170, 50);
   }
-  // 3. ZONA ALTA ATMÓSFERA Y SATÉLITE SIMÓN BOLÍVAR (1200 a 2000 metros)
-  else if (alt < 2000) {
+  // 3. ZONA ALTA ATMÓSFERA Y SATÉLITE SIMÓN BOLÍVAR (750 a 1500 metros - COMIENZA EL ESPACIO)
+  else if (alt < 1500) {
     bgGraphics.fillGradientStyle(0x020813, 0x020813, 0x0a1a33, 0x0a1a33, 1);
     bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
@@ -1009,7 +1113,7 @@ function renderDynamicBackground() {
       bgGraphics.fillCircle(sx, sy, (i % 3 === 0 ? 2 : 1.2));
     }
 
-    // Curvatura de la Tierra
+    // Curvatura de la Tierra abajo
     bgGraphics.fillStyle(0x1565c0, 0.7);
     bgGraphics.beginPath();
     bgGraphics.arc(240, 930, 390, Math.PI, 0, false);
@@ -1026,7 +1130,7 @@ function renderDynamicBackground() {
     bgGraphics.lineBetween(371, satY, 371, satY - 8);
     bgGraphics.strokeCircle(371, satY - 10, 4);
   }
-  // 4. ZONA ESPACIO PROFUNDO Y AGUJERO NEGRO (2000m+)
+  // 4. ZONA ESPACIO PROFUNDO Y AGUJERO NEGRO (1500m+)
   else {
     bgGraphics.fillGradientStyle(0x000000, 0x000000, 0x140526, 0x140526, 1);
     bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
@@ -1037,7 +1141,7 @@ function renderDynamicBackground() {
     bgGraphics.fillStyle(0x00bcd4, 0.22);
     bgGraphics.fillCircle(340, 360, 110);
 
-    // Estrellas
+    // Estrellas titilando
     bgGraphics.fillStyle(0xffffff, 0.95);
     for (let i = 0; i < 50; i++) {
       const sx = ((i * 67) % GAME_WIDTH);
@@ -1111,39 +1215,61 @@ function spawnAnt() {
   const tIdx = Math.floor(Math.random() * NUM_TRUNKS);
   const side = Math.random() < 0.5 ? -1 : 1;
   const r = Math.random();
-  let tex = 'tex_ant_red';
-  let speed = 65 + altitude * 0.03;
 
-  if (altitude > 200 && r > 0.65) {
-    tex = 'tex_ant_black';
-    speed *= 1.25;
-  } else if (altitude > 400 && r < 0.25) {
-    tex = 'tex_ant_fire';
-    speed *= 1.45;
+  const isSpaceShip = altitude >= 750;
+  let tex;
+  // La velocidad base escala dinámicamente con la altitud: mientras más arriba, más rápido bajan!
+  let speed = 75 + altitude * 0.085;
+
+  if (!isSpaceShip) {
+    // EN LA TIERRA: HORMIGAS DEL PATIO Y LA MONTAÑA
+    tex = 'tex_ant_red';
+    if (altitude > 180 && r > 0.6) {
+      tex = 'tex_ant_black';
+      speed *= 1.25;
+    } else if (altitude > 380 && r < 0.35) {
+      tex = 'tex_ant_fire';
+      speed *= 1.45;
+    }
+  } else {
+    // EN EL ESPACIO: NAVES EXTRATERRESTRES (OVNIS)
+    if (r < 0.55) {
+      tex = 'tex_ufo_scout';
+      speed *= 1.35;
+    } else {
+      tex = 'tex_ufo_fighter';
+      speed *= 1.6;
+    }
   }
 
-  // Posicionada 100% sobre el tronco (ancho tronco = 28px, hormiga = 18px)
-  // Las 6 patitas quedan perfectamente sobre la madera del árbol!
-  const antX = TRUNK_X[tIdx] + side * 5;
-  const sprite = currentScene.add.sprite(antX, -25, tex).setDepth(15);
-  ants.push({ tIdx, side, speed, sprite });
+  // Centrado en el tronco o haz cósmico (las naves flotan en el centro, las hormigas sobre la madera)
+  const enemyX = TRUNK_X[tIdx] + side * (isSpaceShip ? 8 : 5);
+  const sprite = currentScene.add.sprite(enemyX, -30, tex).setDepth(15);
+  ants.push({ tIdx, side, speed, isSpaceShip, sprite });
 }
 
 function spawnMango() {
   if (!currentScene) return;
   const tIdx = Math.floor(Math.random() * NUM_TRUNKS);
   const side = Math.random() < 0.5 ? -1 : 1;
-  const isGold = Math.random() < 0.08 && superTimer <= 0;
-  const tex = isGold ? 'tex_mango_gold' : 'tex_mango';
+  // 12% de probabilidad de que aparezca una rica AREPA DORADA si no tiene el poder activo
+  const isArepa = Math.random() < 0.12 && superTimer <= 0;
+  const tex = isArepa ? 'tex_arepa' : 'tex_mango';
 
-  const sprite = currentScene.add.sprite(TRUNK_X[tIdx] + side * OFFSET_X, -25, tex).setDepth(12);
-  mangos.push({ tIdx, side, isGold, sprite });
+  const sprite = currentScene.add.sprite(TRUNK_X[tIdx] + side * OFFSET_X, -28, tex).setDepth(12);
+  mangos.push({ tIdx, side, isArepa, sprite });
 }
 
 function updateAnts(dt) {
   for (let i = ants.length - 1; i >= 0; i--) {
     const a = ants[i];
-    a.sprite.y += (a.speed + scrollSpeed * 15) * dt;
+    // Factor de aceleración según altura del chamito: mientras más arriba trepa, más rápido bajan
+    const playerHeightFactor = Math.max(0.65, (550 - chamito.y) / 260);
+    // Impulso relativo al trepar (W / ↑): al subir con ganas, los enemigos se precipitan rápido hacia él
+    const climbImpact = scrollSpeed * 45;
+    const totalFallSpeed = (a.speed * playerHeightFactor) + climbImpact;
+
+    a.sprite.y += totalFallSpeed * dt;
 
     // Colisión con el chamito
     const dy = Math.abs(a.sprite.y - chamito.y);
@@ -1153,7 +1279,8 @@ function updateAnts(dt) {
       if (superTimer > 0) {
         sfx.smash();
         score += 50;
-        addFloatingText('+50', a.sprite.x, a.sprite.y, '#ffd54f');
+        const msg = a.isSpaceShip ? '💥 OVNI DESTRUIDO! +50' : '★ APLASTADA! +50';
+        addFloatingText(msg, a.sprite.x, a.sprite.y, '#ffd54f');
         a.sprite.destroy();
         ants.splice(i, 1);
         broadcastStats();
@@ -1180,22 +1307,24 @@ function updateAnts(dt) {
 function updateMangos(dt) {
   for (let i = mangos.length - 1; i >= 0; i--) {
     const m = mangos[i];
-    m.sprite.y += (40 + scrollSpeed * 18) * dt;
+    const playerHeightFactor = Math.max(0.65, (550 - chamito.y) / 260);
+    const climbImpact = scrollSpeed * 40;
+    m.sprite.y += (45 * playerHeightFactor + climbImpact) * dt;
 
     const dy = Math.abs(m.sprite.y - chamito.y);
     const dx = Math.abs(m.sprite.x - chamito.x);
 
     if (m.tIdx === chamito.trunk && m.side === chamito.side && dy < 32 && dx < 24) {
-      mangosCount++;
-      if (m.isGold) {
+      if (m.isArepa) {
         sfx.golden();
-        superTimer = 7.0;
+        superTimer = 7.5;
         score += 150;
-        addFloatingText('🌟 SUPER MANGO! +150', chamito.x, chamito.y - 30, '#ffd700');
+        addFloatingText('🫓 ¡AREPA PODEROSA! +150', chamito.x, chamito.y - 30, '#ffd700');
       } else {
+        mangosCount++;
         sfx.munch();
         score += 20;
-        addFloatingText('+20', m.sprite.x, m.sprite.y, '#81c784');
+        addFloatingText('+20 🥭', m.sprite.x, m.sprite.y, '#81c784');
       }
       m.sprite.destroy();
       mangos.splice(i, 1);
@@ -1236,6 +1365,8 @@ function updateFloatingTexts(dt) {
 
 function triggerChamitoDeath() {
   gameState = STATE_DYING;
+  superTimer = 0;
+  starShield.forEach((s) => s && s.setVisible(false));
   sfx.stopBGM();
   sfx.chamitoFall();
 
