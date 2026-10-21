@@ -1235,13 +1235,14 @@ function moveChamitoRight() {
 }
 
 function updateWorldProgress(dt) {
-  // Los metros aumentan más rápido si el chamito trepa con ganas y se mantiene arriba
-  const heightBoost = Math.max(0.1, (550 - chamito.y) / 320);
-  const climbEffort = held.P1_U ? 4.0 : (held.P1_D ? 0.05 : 0.6);
-  const effectiveClimb = climbEffort * heightBoost;
+  // Progresión continua de altitud y fondo:
+  // Avanza de forma fluida y visible aún cuando el jugador se detiene (poco a poco), y se acelera con fuerza al trepar arriba
+  const heightBonus = 1.0 + Math.max(0, (480 - chamito.y) / 220) * 1.3;
+  const climbEffort = held.P1_U ? 3.4 : (held.P1_D ? 0.35 : 1.25);
+  const effectiveClimb = climbEffort * heightBonus;
 
-  altitude += effectiveClimb * dt * 2.2; // Ritmo ágil para explorar el barrio, El Ávila y alcanzar el espacio
-  score += Math.round(effectiveClimb * dt * 4.0);
+  altitude += effectiveClimb * dt * 2.2; // Avance constante continuo (en reposo sube a ~2.8 m/s, trepando arriba a ~19 m/s)
+  score += Math.round(effectiveClimb * dt * 3.8);
 
   if (altitude > bestAltitude) {
     bestAltitude = Math.floor(altitude);
