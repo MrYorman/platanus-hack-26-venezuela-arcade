@@ -297,6 +297,7 @@ let bestAltitude = 0;
 let superTimer = 0;
 let invulTimer = 0;
 let scrollSpeed = 0.5;
+let worldSpeedFactor = 1.0;
 
 // Objeto del Chamito (Comienza en el suelo del patio junto al tronco)
 let chamito = {
@@ -721,73 +722,176 @@ function generateProceduralTextures(scene) {
   gStar.generateTexture('tex_star', 24, 24);
   gStar.destroy();
 
-  // 5. HORMIGAS EN VISTA DE PERFIL (DE LADO NORMAL) TREPANDO CON ANIMACIÓN ACTIVA DE 2 CUADROS
-  function createSideAntTexture(name, mainColor, darkColor, eyeColor, isGiant = false) {
-    const w = isGiant ? 24 : 20;
-    const h = isGiant ? 34 : 28;
+  // 5. HORMIGAS EN VISTA DE PERFIL (ANATOMÍA REALISTA: 3 SEGMENTOS, ANTENAS ACODADAS, PINZAS Y 6 PATAS ARTICULADAS)
+  function createSideAntTexture(name, mainColor, darkColor, highlightColor, eyeColor, isGiant = false) {
+    const w = isGiant ? 36 : 28;
+    const h = isGiant ? 52 : 42;
+    const ox = isGiant ? 4 : 0;
+    const oy = isGiant ? 5 : 0;
 
     [1, 2].forEach((frame) => {
       const g = scene.make.graphics({ x: 0, y: 0, add: false });
-      const ox = isGiant ? 2 : 0;
-      const oy = isGiant ? 3 : 0;
 
-      // A. Patas lejanas (sombra en segundo plano)
-      g.lineStyle(isGiant ? 2 : 1.5, darkColor, 0.85);
-      if (frame === 1) {
-        g.lineBetween(10 + ox, 14 + oy, 16 + ox, 10 + oy);
-        g.lineBetween(12 + ox, 18 + oy, 7 + ox, 16 + oy);
-        g.lineBetween(13 + ox, 21 + oy, 17 + ox, 25 + oy);
-      } else {
-        g.lineBetween(10 + ox, 14 + oy, 7 + ox, 9 + oy);
-        g.lineBetween(12 + ox, 18 + oy, 17 + ox, 16 + oy);
-        g.lineBetween(13 + ox, 21 + oy, 14 + ox, 24 + oy);
+      // A. Patas lejanas (fondo oscuro con codos articulados tipo insecto)
+      g.lineStyle(isGiant ? 2.0 : 1.4, darkColor, 0.85);
+      // Pata trasera lejana
+      g.beginPath();
+      g.moveTo(13 + ox, 21 + oy);
+      g.lineTo(7 + ox, 16 + oy);
+      g.lineTo(3 + ox, 18 + oy);
+      g.strokePath();
+
+      // Pata media lejana
+      g.beginPath();
+      g.moveTo(14 + ox, 24 + oy);
+      g.lineTo(8 + ox, 23 + oy);
+      g.lineTo(4 + ox, 26 + oy);
+      g.strokePath();
+
+      // Pata delantera lejana
+      g.beginPath();
+      g.moveTo(15 + ox, 26 + oy);
+      g.lineTo(10 + ox, 30 + oy);
+      g.lineTo(7 + ox, 34 + oy);
+      g.strokePath();
+
+      // B. Abdomen bulboso (Gáster) arqueado, voluminoso y segmentado
+      g.fillStyle(mainColor, 1);
+      g.fillEllipse(11 + ox, 11 + oy, isGiant ? 18 : 14, isGiant ? 21 : 16);
+
+      // Franjas de quitina (tergitos abdominales característicos)
+      g.lineStyle(isGiant ? 1.6 : 1.2, darkColor, 0.9);
+      g.lineBetween(5 + ox, 8 + oy, 17 + ox, 8 + oy);
+      g.lineBetween(4 + ox, 11 + oy, 18 + ox, 11 + oy);
+      g.lineBetween(5 + ox, 14 + oy, 17 + ox, 14 + oy);
+
+      // Brillo especular de cutícula de insecto (relieve 3D)
+      g.lineStyle(isGiant ? 1.8 : 1.3, highlightColor, 0.85);
+      g.lineBetween(7 + ox, 6 + oy, 12 + ox, 6 + oy);
+      g.lineBetween(5 + ox, 9 + oy, 8 + ox, 9 + oy);
+
+      // Ápice / aguijón en la punta superior del abdomen
+      g.fillStyle(darkColor, 1);
+      g.fillTriangle(10 + ox, 2 + oy, 12 + ox, 2 + oy, 11 + ox, 0 + oy);
+
+      // C. Pecíolo con Nodo Vertical (Cintura de avispa ultra fina inconfundible de hormiga)
+      g.lineStyle(isGiant ? 2.2 : 1.8, darkColor, 1);
+      g.lineBetween(12 + ox, 18 + oy, 14 + ox, 21 + oy);
+      // El nodo peciolar distintivo
+      g.fillStyle(mainColor, 1);
+      g.fillCircle(13 + ox, 19 + oy, isGiant ? 3.0 : 2.2);
+      g.fillStyle(highlightColor, 0.8);
+      g.fillCircle(13 + ox, 18.5 + oy, isGiant ? 1.4 : 1.0);
+
+      // D. Tórax muscular arqueado (Mesosoma con joroba)
+      g.fillStyle(mainColor, 1);
+      g.fillEllipse(15 + ox, 24 + oy, isGiant ? 10 : 8, isGiant ? 12 : 9.5);
+      g.fillStyle(highlightColor, 0.75);
+      g.fillCircle(14 + ox, 22.5 + oy, isGiant ? 2.5 : 1.8);
+
+      // E. Cabeza cordiforme / almendrada mirando hacia abajo
+      g.fillStyle(darkColor, 1);
+      g.fillEllipse(17 + ox, 32 + oy, isGiant ? 12 : 9.5, isGiant ? 10 : 8);
+      if (isGiant) {
+        // Cabeza gigante blindada de Bachaco soldado
+        g.fillStyle(mainColor, 1);
+        g.fillCircle(15 + ox, 30 + oy, 4.5);
+        g.fillCircle(19 + ox, 30 + oy, 4.5);
       }
 
-      // B. Abdomen bulboso arqueado en perfil lateral (Gaster)
-      g.fillStyle(mainColor, 1);
-      g.fillEllipse(8 + ox, 7 + oy, isGiant ? 12 : 9, isGiant ? 15 : 12);
-      g.lineStyle(1.2, darkColor, 0.9);
-      g.lineBetween(4 + ox, 6 + oy, 12 + ox, 6 + oy);
-      g.lineBetween(3 + ox, 9 + oy, 13 + ox, 9 + oy);
-
-      // C. Cintura fina / Nodo (Pecíolo)
-      g.fillStyle(darkColor, 1);
-      g.fillCircle(10 + ox, 14 + oy, isGiant ? 2.5 : 2);
-
-      // D. Tórax muscular en perfil
-      g.fillStyle(mainColor, 1);
-      g.fillEllipse(11 + ox, 18 + oy, isGiant ? 7 : 5.5, isGiant ? 9 : 7);
-
-      // E. Cabeza mirando hacia abajo abrazando la corteza
-      g.fillStyle(darkColor, 1);
-      g.fillCircle(13 + ox, 23 + oy, isGiant ? 5 : 4);
-
-      // Ojo brillante
+      // Ojo compuesto prominente
       g.fillStyle(eyeColor, 1);
-      g.fillCircle(12 + ox, 22.5 + oy, 1.4);
+      g.fillCircle(15 + ox, 31 + oy, isGiant ? 2.6 : 2.0);
       g.fillStyle(0x000000, 1);
-      g.fillCircle(12 + ox, 23 + oy, 0.7);
+      g.fillCircle(15 + ox, 31 + oy, isGiant ? 1.6 : 1.1);
+      g.fillStyle(0xffffff, 1);
+      g.fillCircle(14.5 + ox, 30.5 + oy, 0.7);
 
-      // Mandíbulas tenaza mordiendo hacia la madera
-      g.lineStyle(isGiant ? 2 : 1.5, 0xffffff, 1);
-      g.lineBetween(13 + ox, 26 + oy, 16 + ox, 28 + oy);
-      g.lineBetween(15 + ox, 25 + oy, 18 + ox, 27 + oy);
+      // Mandíbulas afiladas de pinza / tijera mordiendo hacia la madera
+      g.lineStyle(isGiant ? 2.4 : 1.8, 0xffffff, 1);
+      g.beginPath();
+      g.moveTo(16 + ox, 36 + oy);
+      g.lineTo(19 + ox, 40 + oy);
+      g.strokePath();
+      g.beginPath();
+      g.moveTo(18 + ox, 35 + oy);
+      g.lineTo(21 + ox, 39 + oy);
+      g.strokePath();
+      g.fillStyle(0xd7ccc8, 1);
+      g.fillCircle(19 + ox, 40 + oy, 1.0);
+      g.fillCircle(21 + ox, 39 + oy, 1.0);
 
-      // Antena arqueada hacia abajo
-      g.lineStyle(1.2, mainColor, 1);
-      g.lineBetween(13 + ox, 21 + oy, 16 + ox, 20 + oy);
-      g.lineBetween(16 + ox, 20 + oy, 18 + ox, 22 + oy);
+      // Antenas acodadas / quebradas en forma de L (rasgo esencial de hormiga)
+      g.lineStyle(isGiant ? 1.8 : 1.3, highlightColor, 1);
+      // Antena principal
+      g.beginPath();
+      g.moveTo(18 + ox, 30 + oy);
+      g.lineTo(23 + ox, 27 + oy); // Escapo
+      g.lineTo(26 + ox, 33 + oy); // Flagelo acodado
+      g.strokePath();
+      // Antena secundaria de fondo
+      g.beginPath();
+      g.moveTo(17 + ox, 29 + oy);
+      g.lineTo(21 + ox, 25 + oy);
+      g.lineTo(24 + ox, 29 + oy);
+      g.strokePath();
 
-      // F. Patas cercanas activas agarrando corteza (paso alternado en perfil)
-      g.lineStyle(isGiant ? 2.2 : 1.6, mainColor, 1);
+      // F. 3 Patas cercanas articuladas en primer plano con caminata viva alternada
+      g.lineStyle(isGiant ? 2.4 : 1.8, mainColor, 1);
       if (frame === 1) {
-        g.lineBetween(13 + ox, 21 + oy, 18 + ox, 24 + oy); // Delantera
-        g.lineBetween(11 + ox, 18 + oy, 6 + ox, 15 + oy);  // Media
-        g.lineBetween(10 + ox, 14 + oy, 17 + ox, 12 + oy); // Trasera
+        // Pata trasera (empuja)
+        g.beginPath();
+        g.moveTo(13 + ox, 22 + oy);
+        g.lineTo(18 + ox, 15 + oy);
+        g.lineTo(23 + ox, 18 + oy);
+        g.strokePath();
+
+        // Pata media (apoyo)
+        g.beginPath();
+        g.moveTo(15 + ox, 24 + oy);
+        g.lineTo(20 + ox, 26 + oy);
+        g.lineTo(25 + ox, 27 + oy);
+        g.strokePath();
+
+        // Pata delantera (busca agarre abajo)
+        g.beginPath();
+        g.moveTo(16 + ox, 26 + oy);
+        g.lineTo(22 + ox, 29 + oy);
+        g.lineTo(26 + ox, 36 + oy);
+        g.strokePath();
       } else {
-        g.lineBetween(13 + ox, 21 + oy, 14 + ox, 23 + oy); // Delantera
-        g.lineBetween(11 + ox, 18 + oy, 18 + ox, 18 + oy); // Media
-        g.lineBetween(10 + ox, 14 + oy, 7 + ox, 10 + oy);  // Trasera
+        // Pata trasera (flexión)
+        g.beginPath();
+        g.moveTo(13 + ox, 22 + oy);
+        g.lineTo(17 + ox, 17 + oy);
+        g.lineTo(21 + ox, 20 + oy);
+        g.strokePath();
+
+        // Pata media (elevada)
+        g.beginPath();
+        g.moveTo(15 + ox, 24 + oy);
+        g.lineTo(21 + ox, 22 + oy);
+        g.lineTo(24 + ox, 24 + oy);
+        g.strokePath();
+
+        // Pata delantera (agarre firme)
+        g.beginPath();
+        g.moveTo(16 + ox, 26 + oy);
+        g.lineTo(19 + ox, 31 + oy);
+        g.lineTo(23 + ox, 37 + oy);
+        g.strokePath();
+      }
+
+      // Uñitas o garfios en los extremos de las patas
+      g.fillStyle(darkColor, 1);
+      if (frame === 1) {
+        g.fillRect(23 + ox, 18 + oy, 2, 2);
+        g.fillRect(25 + ox, 27 + oy, 2, 2);
+        g.fillRect(26 + ox, 36 + oy, 2, 2);
+      } else {
+        g.fillRect(21 + ox, 20 + oy, 2, 2);
+        g.fillRect(24 + ox, 24 + oy, 2, 2);
+        g.fillRect(23 + ox, 37 + oy, 2, 2);
       }
 
       g.generateTexture(`${name}_${frame}`, w, h);
@@ -796,11 +900,11 @@ function generateProceduralTextures(scene) {
     });
   }
 
-  // Generar las 4 especies de hormigas en vista de perfil con sus 2 cuadros de caminata
-  createSideAntTexture('tex_ant_red', 0xd32f2f, 0x8e0000, 0xffffff);
-  createSideAntTexture('tex_ant_black', 0x37474f, 0x1a2327, 0xffffff);
-  createSideAntTexture('tex_ant_fire', 0xff5722, 0xbf360c, 0xffff00);
-  createSideAntTexture('tex_ant_giant', 0x7f0000, 0x4a0000, 0xffff00, true);
+  // Generar las 4 especies de hormigas con anatomía real, franjas y antenas acodadas
+  createSideAntTexture('tex_ant_red', 0xb71c1c, 0x4a0000, 0xff5252, 0x212121);
+  createSideAntTexture('tex_ant_black', 0x263238, 0x0a0f12, 0x78909c, 0x212121);
+  createSideAntTexture('tex_ant_fire', 0xe65100, 0xbf360c, 0xffb74d, 0xffeb3b);
+  createSideAntTexture('tex_ant_giant', 0x4e342e, 0x271610, 0x8d6e63, 0xffa726, true);
 
   // 8. PLATILLO VOLADOR ALIENÍGENA (Enemigo en el Espacio)
   const gU1 = scene.make.graphics({ x: 0, y: 0, add: false });
@@ -1044,6 +1148,7 @@ function startFreshGame() {
   superTimer = 0;
   invulTimer = 0;
   scrollSpeed = 0.5;
+  worldSpeedFactor = 1.0;
 
   ants.forEach((a) => {
     if (a && a.sprite) a.sprite.destroy();
@@ -1098,13 +1203,13 @@ function handlePlayerInput(dt) {
 
   // Trepar o deslizarse (W / ↑ y S / ↓)
   if (held.P1_U) {
-    scrollSpeed = 2.4; // Trepar con ganas
+    scrollSpeed = 2.4 * worldSpeedFactor; // Trepar con ganas
     chamito.targetY = Math.max(160, chamito.targetY - 140 * dt);
   } else if (held.P1_D) {
     scrollSpeed = 0.15; // Deslizarse hacia el suelo suavemente
     chamito.targetY = Math.min(480, chamito.targetY + 45 * dt);
   } else {
-    scrollSpeed = 0.6; // Desplazamiento suave al descansar
+    scrollSpeed = 0.6 * worldSpeedFactor; // Desplazamiento suave al descansar
     chamito.targetY += (470 - chamito.targetY) * 0.08;
   }
 
@@ -1245,8 +1350,11 @@ function updateWorldProgress(dt) {
   const climbEffort = held.P1_U ? 3.4 : (held.P1_D ? 0.35 : 1.25);
   const effectiveClimb = climbEffort * heightBonus;
 
-  altitude += effectiveClimb * dt * 2.2; // Avance constante continuo (en reposo sube a ~2.8 m/s, trepando arriba a ~19 m/s)
-  score += Math.round(effectiveClimb * dt * 3.8);
+  // Factor dinámico de velocidad del mundo: a medida que los objetos y enemigos ganan velocidad con la altitud,
+  // el desplazamiento del fondo, la corteza y el avance vertical escalan en perfecta sincronía física
+  worldSpeedFactor = 1.0 + Math.min(1.15, altitude * 0.00075);
+  altitude += effectiveClimb * worldSpeedFactor * dt * 2.2;
+  score += Math.round(effectiveClimb * worldSpeedFactor * dt * 3.8);
 
   if (altitude > bestAltitude) {
     bestAltitude = Math.floor(altitude);
@@ -1615,7 +1723,7 @@ function renderDynamicBackground() {
 
       // AVIONES PASANDO EN EL FONDO DE LAS NUBES
       if (alt >= 500 && alt <= 1000) {
-        const planeX = ((timeSec * 75) % (GAME_WIDTH + 140)) - 70;
+        const planeX = ((timeSec * 75 * worldSpeedFactor) % (GAME_WIDTH + 140)) - 70;
         const planeY = cloudY + 20;
 
         // Estela de vapor del avión
