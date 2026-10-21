@@ -692,144 +692,86 @@ function generateProceduralTextures(scene) {
   gMA.generateTexture('tex_star', 22, 22); // Compatibilidad
   gMA.destroy();
 
-  // 5. HORMIGA ROJA COMPACTA (18px de ancho: las 6 patas caben 100% sobre el tronco!)
-  const gAR = scene.make.graphics({ x: 0, y: 0, add: false });
-  // Abdomen
-  gAR.fillStyle(0xd32f2f, 1);
-  gAR.fillEllipse(9, 6, 6, 8);
-  gAR.lineStyle(1, 0x8e0000, 1);
-  gAR.lineBetween(6, 5, 12, 5);
-  gAR.lineBetween(6, 8, 12, 8);
+  // 5. HORMIGAS EN VISTA DE PERFIL (DE LADO NORMAL) TREPANDO CON ANIMACIÓN ACTIVA DE 2 CUADROS
+  function createSideAntTexture(name, mainColor, darkColor, eyeColor, isGiant = false) {
+    const w = isGiant ? 24 : 20;
+    const h = isGiant ? 34 : 28;
 
-  // Tórax
-  gAR.fillStyle(0xb71c1c, 1);
-  gAR.fillEllipse(9, 13, 4.5, 5.5);
+    [1, 2].forEach((frame) => {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      const ox = isGiant ? 2 : 0;
+      const oy = isGiant ? 3 : 0;
 
-  // Cabeza mirando hacia abajo
-  gAR.fillStyle(0xc62828, 1);
-  gAR.fillCircle(9, 19, 4.5);
+      // A. Patas lejanas (sombra en segundo plano)
+      g.lineStyle(isGiant ? 2 : 1.5, darkColor, 0.85);
+      if (frame === 1) {
+        g.lineBetween(10 + ox, 14 + oy, 16 + ox, 10 + oy);
+        g.lineBetween(12 + ox, 18 + oy, 7 + ox, 16 + oy);
+        g.lineBetween(13 + ox, 21 + oy, 17 + ox, 25 + oy);
+      } else {
+        g.lineBetween(10 + ox, 14 + oy, 7 + ox, 9 + oy);
+        g.lineBetween(12 + ox, 18 + oy, 17 + ox, 16 + oy);
+        g.lineBetween(13 + ox, 21 + oy, 14 + ox, 24 + oy);
+      }
 
-  // Ojitos
-  gAR.fillStyle(0xffffff, 1);
-  gAR.fillCircle(7.5, 18.5, 1.2);
-  gAR.fillCircle(10.5, 18.5, 1.2);
-  gAR.fillStyle(0x000000, 1);
-  gAR.fillCircle(7.5, 19, 0.7);
-  gAR.fillCircle(10.5, 19, 0.7);
+      // B. Abdomen bulboso arqueado en perfil lateral (Gaster)
+      g.fillStyle(mainColor, 1);
+      g.fillEllipse(8 + ox, 7 + oy, isGiant ? 12 : 9, isGiant ? 15 : 12);
+      g.lineStyle(1.2, darkColor, 0.9);
+      g.lineBetween(4 + ox, 6 + oy, 12 + ox, 6 + oy);
+      g.lineBetween(3 + ox, 9 + oy, 13 + ox, 9 + oy);
 
-  // Mandíbulas tenaza
-  gAR.lineStyle(1.4, 0xffffff, 1);
-  gAR.lineBetween(7.5, 22, 6, 25);
-  gAR.lineBetween(10.5, 22, 12, 25);
+      // C. Cintura fina / Nodo (Pecíolo)
+      g.fillStyle(darkColor, 1);
+      g.fillCircle(10 + ox, 14 + oy, isGiant ? 2.5 : 2);
 
-  // Antenas
-  gAR.lineStyle(1.2, 0xb71c1c, 1);
-  gAR.lineBetween(7.5, 17, 4, 14);
-  gAR.lineBetween(10.5, 17, 14, 14);
+      // D. Tórax muscular en perfil
+      g.fillStyle(mainColor, 1);
+      g.fillEllipse(11 + ox, 18 + oy, isGiant ? 7 : 5.5, isGiant ? 9 : 7);
 
-  // 6 Patas que agarran el tronco (curvadas hacia el centro, NUNCA en el aire!)
-  gAR.lineStyle(1.5, 0xd32f2f, 1);
-  // Delanteras
-  gAR.lineBetween(9, 16, 2, 14);
-  gAR.lineBetween(9, 16, 16, 14);
-  // Medias
-  gAR.lineBetween(9, 13, 1, 13);
-  gAR.lineBetween(9, 13, 17, 13);
-  // Traseras
-  gAR.lineBetween(9, 9, 2, 7);
-  gAR.lineBetween(9, 9, 16, 7);
+      // E. Cabeza mirando hacia abajo abrazando la corteza
+      g.fillStyle(darkColor, 1);
+      g.fillCircle(13 + ox, 23 + oy, isGiant ? 5 : 4);
 
-  gAR.generateTexture('tex_ant_red', 18, 26);
-  gAR.destroy();
+      // Ojo brillante
+      g.fillStyle(eyeColor, 1);
+      g.fillCircle(12 + ox, 22.5 + oy, 1.4);
+      g.fillStyle(0x000000, 1);
+      g.fillCircle(12 + ox, 23 + oy, 0.7);
 
-  // 6. HORMIGA NEGRA GUERRERA (Compacta sobre el tronco)
-  const gAB = scene.make.graphics({ x: 0, y: 0, add: false });
-  gAB.fillStyle(0x212121, 1);
-  gAB.fillEllipse(9, 6, 6.5, 8.5);
-  gAB.fillStyle(0x111111, 1);
-  gAB.fillEllipse(9, 14, 5, 6);
-  gAB.fillStyle(0x000000, 1);
-  gAB.fillCircle(9, 20, 5);
+      // Mandíbulas tenaza mordiendo hacia la madera
+      g.lineStyle(isGiant ? 2 : 1.5, 0xffffff, 1);
+      g.lineBetween(13 + ox, 26 + oy, 16 + ox, 28 + oy);
+      g.lineBetween(15 + ox, 25 + oy, 18 + ox, 27 + oy);
 
-  gAB.fillStyle(0xffffff, 1);
-  gAB.fillCircle(7.5, 19.5, 1.2);
-  gAB.fillCircle(10.5, 19.5, 1.2);
+      // Antena arqueada hacia abajo
+      g.lineStyle(1.2, mainColor, 1);
+      g.lineBetween(13 + ox, 21 + oy, 16 + ox, 20 + oy);
+      g.lineBetween(16 + ox, 20 + oy, 18 + ox, 22 + oy);
 
-  gAB.lineStyle(1.4, 0xffffff, 1);
-  gAB.lineBetween(7.5, 23, 6, 26);
-  gAB.lineBetween(10.5, 23, 12, 26);
+      // F. Patas cercanas activas agarrando corteza (paso alternado en perfil)
+      g.lineStyle(isGiant ? 2.2 : 1.6, mainColor, 1);
+      if (frame === 1) {
+        g.lineBetween(13 + ox, 21 + oy, 18 + ox, 24 + oy); // Delantera
+        g.lineBetween(11 + ox, 18 + oy, 6 + ox, 15 + oy);  // Media
+        g.lineBetween(10 + ox, 14 + oy, 17 + ox, 12 + oy); // Trasera
+      } else {
+        g.lineBetween(13 + ox, 21 + oy, 14 + ox, 23 + oy); // Delantera
+        g.lineBetween(11 + ox, 18 + oy, 18 + ox, 18 + oy); // Media
+        g.lineBetween(10 + ox, 14 + oy, 7 + ox, 10 + oy);  // Trasera
+      }
 
-  gAB.lineStyle(1.5, 0x424242, 1);
-  gAB.lineBetween(9, 17, 2, 15);
-  gAB.lineBetween(9, 17, 16, 15);
-  gAB.lineBetween(9, 14, 1, 14);
-  gAB.lineBetween(9, 14, 17, 14);
-  gAB.lineBetween(9, 10, 2, 8);
-  gAB.lineBetween(9, 10, 16, 8);
+      g.generateTexture(`${name}_${frame}`, w, h);
+      if (frame === 1) g.generateTexture(name, w, h); // Compatibilidad retro
+      g.destroy();
+    });
+  }
 
-  gAB.generateTexture('tex_ant_black', 18, 27);
-  gAB.destroy();
-
-  // 7. HORMIGA DE FUEGO BALA (Compacta sobre el tronco)
-  const gAF = scene.make.graphics({ x: 0, y: 0, add: false });
-  gAF.fillStyle(0xff6d00, 1);
-  gAF.fillEllipse(9, 6, 6, 8);
-  gAF.fillStyle(0xdd2c00, 1);
-  gAF.fillEllipse(9, 13, 4.5, 5.5);
-  gAF.fillStyle(0xbf360c, 1);
-  gAF.fillCircle(9, 19, 4.5);
-
-  gAF.fillStyle(0xffff00, 1);
-  gAF.fillCircle(7.5, 18.5, 1.2);
-  gAF.fillCircle(10.5, 18.5, 1.2);
-
-  gAF.lineStyle(1.5, 0xff9100, 1);
-  gAF.lineBetween(9, 16, 2, 14);
-  gAF.lineBetween(9, 16, 16, 14);
-  gAF.lineBetween(9, 13, 1, 13);
-  gAF.lineBetween(9, 13, 17, 13);
-  gAF.lineBetween(9, 9, 2, 7);
-  gAF.lineBetween(9, 9, 16, 7);
-
-  gAF.generateTexture('tex_ant_fire', 18, 26);
-  gAF.destroy();
-
-  // 7B. BACHACO GIGANTE / HORMIGA CULONA (Enemigo grande que baja por los troncos)
-  const gAG = scene.make.graphics({ x: 0, y: 0, add: false });
-  // Abdomen grande rayado
-  gAG.fillStyle(0x7f0000, 1);
-  gAG.fillEllipse(11, 8, 8.5, 11);
-  gAG.lineStyle(1.4, 0xb71c1c, 0.9);
-  gAG.lineBetween(6, 6, 16, 6);
-  gAG.lineBetween(5, 9, 17, 9);
-  gAG.lineBetween(6, 12, 16, 12);
-  // Tórax musculoso
-  gAG.fillStyle(0x4a0000, 1);
-  gAG.fillEllipse(11, 17, 6, 7);
-  // Cabeza con mandíbulas feroces
-  gAG.fillStyle(0xb71c1c, 1);
-  gAG.fillCircle(11, 24, 6);
-  // Ojos brillantes amarillos
-  gAG.fillStyle(0xffff00, 1);
-  gAG.fillCircle(9, 23.5, 1.6);
-  gAG.fillCircle(13, 23.5, 1.6);
-  gAG.fillStyle(0x000000, 1);
-  gAG.fillCircle(9, 24, 0.9);
-  gAG.fillCircle(13, 24, 0.9);
-  // Mandíbulas tenaza filosas
-  gAG.lineStyle(1.8, 0xffffff, 1);
-  gAG.lineBetween(9, 27, 7, 31);
-  gAG.lineBetween(13, 27, 15, 31);
-  // 6 Patas largas que se aferran firmes al tronco (100% sobre la madera)
-  gAG.lineStyle(2, 0x8e0000, 1);
-  gAG.lineBetween(11, 20, 2, 18);
-  gAG.lineBetween(11, 20, 20, 18);
-  gAG.lineBetween(11, 16, 1, 16);
-  gAG.lineBetween(11, 16, 21, 16);
-  gAG.lineBetween(11, 11, 2, 9);
-  gAG.lineBetween(11, 11, 20, 9);
-  gAG.generateTexture('tex_ant_giant', 22, 33);
-  gAG.destroy();
+  // Generar las 4 especies de hormigas en vista de perfil con sus 2 cuadros de caminata
+  createSideAntTexture('tex_ant_red', 0xd32f2f, 0x8e0000, 0xffffff);
+  createSideAntTexture('tex_ant_black', 0x37474f, 0x1a2327, 0xffffff);
+  createSideAntTexture('tex_ant_fire', 0xff5722, 0xbf360c, 0xffff00);
+  createSideAntTexture('tex_ant_giant', 0x7f0000, 0x4a0000, 0xffff00, true);
 
   // 8. PLATILLO VOLADOR ALIENÍGENA (Enemigo en el Espacio)
   const gU1 = scene.make.graphics({ x: 0, y: 0, add: false });
@@ -1346,11 +1288,12 @@ function renderDynamicBackground() {
   bgGraphics.fillGradientStyle(skyTop, skyTop, skyBot, skyBot, 1);
   bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-  // 2. MONTAÑA EL ÁVILA (VISIBLE DESDE EL INICIO 0m DE FONDO DETRÁS DE LAS CASAS)
-  const avilaY = 250 + (alt * 0.38);
-  if (avilaY < GAME_HEIGHT + 220) {
+  // 2. MONTAÑA EL ÁVILA (VISIBLE DESDE EL INICIO 0m, SE DESVANECE AL LLEGAR A LAS NUBES Y NUNCA LLEGA AL ESPACIO)
+  const avilaY = 250 + (alt * 0.95);
+  if (alt < 600 && avilaY < GAME_HEIGHT + 50) {
+    const avilaAlpha = alt > 420 ? Math.max(0, 1 - (alt - 420) / 180) : 1.0;
     // Silueta majestuosa de El Ávila
-    bgGraphics.fillStyle(0x0e3d1c, 0.95);
+    bgGraphics.fillStyle(0x0e3d1c, 0.95 * avilaAlpha);
     bgGraphics.beginPath();
     bgGraphics.moveTo(0, avilaY + 95);
     bgGraphics.lineTo(105, avilaY - 35);
@@ -1363,15 +1306,15 @@ function renderDynamicBackground() {
     bgGraphics.fillPath();
 
     // Antena del Teleférico / Humboldt en la cima
-    bgGraphics.lineStyle(1.6, 0xffffff, 0.85);
+    bgGraphics.lineStyle(1.6, 0xffffff, 0.85 * avilaAlpha);
     bgGraphics.lineBetween(355, avilaY - 75, 355, avilaY - 96);
-    bgGraphics.fillStyle(0xff1744, 1);
+    bgGraphics.fillStyle(0xff1744, avilaAlpha);
     bgGraphics.fillCircle(355, avilaY - 97, 2); // Baliza roja de la antena
   }
 
   // 3. CIUDAD DE CARACAS (METRÓPOLIS MONUMENTAL: PARQUE CENTRAL, LA PREVISORA, CRISTAL Y AUTOPISTA)
-  const cityY = 330 + (alt * 0.72);
-  if (cityY < GAME_HEIGHT + 240 && cityY > -220) {
+  const cityY = 330 + (alt * 1.25);
+  if (alt < 480 && cityY < GAME_HEIGHT + 240 && cityY > -220) {
     // A. Resplandor nocturno y cálido de la metrópolis en el valle
     bgGraphics.fillStyle(0xff7043, 0.22);
     bgGraphics.fillEllipse(240, cityY + 45, GAME_WIDTH * 1.25, 170);
@@ -1562,7 +1505,7 @@ function renderDynamicBackground() {
     });
   }
 
-  if (barrioY < GAME_HEIGHT + 250 && barrioY > -250) {
+  if (alt < 260 && barrioY < GAME_HEIGHT + 250 && barrioY > -250) {
     // Casa izquierda de ladrillos rojos
     bgGraphics.fillStyle(0xb73a1e, 1);
     bgGraphics.fillRect(10, barrioY, 150, 240);
@@ -1623,51 +1566,53 @@ function renderDynamicBackground() {
     bgGraphics.fillStyle(0xd32f2f, 1); bgGraphics.fillRect(260, barrioY + 87, 14, 16);
   }
 
-  // 5. NUBES Y AVIONES PASANDO EN EL FONDO (550m a 1450m)
-  if (alt >= 450 && alt <= 1500) {
-    const cloudY = 380 - ((alt - 450) * 0.65);
-    bgGraphics.fillStyle(0xffffff, 0.45);
-    // Grupo de nubes 1
-    bgGraphics.fillCircle(70, cloudY + 80, 45);
-    bgGraphics.fillCircle(120, cloudY + 70, 58);
-    bgGraphics.fillCircle(170, cloudY + 85, 42);
-    // Grupo de nubes 2
-    bgGraphics.fillCircle(330, cloudY - 60, 48);
-    bgGraphics.fillCircle(380, cloudY - 70, 62);
-    bgGraphics.fillCircle(430, cloudY - 55, 45);
+  // 5. NUBES Y AVIONES PASANDO EN EL FONDO (420m a 1100m, descienden con paralaje suave)
+  if (alt >= 420 && alt <= 1100) {
+    const cloudY = 160 + ((alt - 420) * 0.85);
+    if (cloudY < GAME_HEIGHT + 140) {
+      bgGraphics.fillStyle(0xffffff, 0.45);
+      // Grupo de nubes 1
+      bgGraphics.fillCircle(70, cloudY + 80, 45);
+      bgGraphics.fillCircle(120, cloudY + 70, 58);
+      bgGraphics.fillCircle(170, cloudY + 85, 42);
+      // Grupo de nubes 2
+      bgGraphics.fillCircle(330, cloudY - 60, 48);
+      bgGraphics.fillCircle(380, cloudY - 70, 62);
+      bgGraphics.fillCircle(430, cloudY - 55, 45);
 
-    // AVIONES PASANDO EN EL FONDO DE LAS NUBES
-    if (alt >= 550 && alt <= 1350) {
-      const planeX = ((timeSec * 75) % (GAME_WIDTH + 140)) - 70;
-      const planeY = cloudY + 20;
+      // AVIONES PASANDO EN EL FONDO DE LAS NUBES
+      if (alt >= 500 && alt <= 1000) {
+        const planeX = ((timeSec * 75) % (GAME_WIDTH + 140)) - 70;
+        const planeY = cloudY + 20;
 
-      // Estela de vapor del avión
-      bgGraphics.lineStyle(2, 0xffffff, 0.45);
-      bgGraphics.lineBetween(planeX - 45, planeY, planeX - 10, planeY);
+        // Estela de vapor del avión
+        bgGraphics.lineStyle(2, 0xffffff, 0.45);
+        bgGraphics.lineBetween(planeX - 45, planeY, planeX - 10, planeY);
 
-      // Fuselaje del avión
-      bgGraphics.fillStyle(0xffffff, 0.95);
-      bgGraphics.fillRoundedRect(planeX - 12, planeY - 3, 28, 6, 2);
-      // Alas
-      bgGraphics.fillTriangle(planeX - 2, planeY - 14, planeX + 8, planeY - 3, planeX - 2, planeY - 3);
-      bgGraphics.fillTriangle(planeX - 2, planeY + 14, planeX + 8, planeY + 3, planeX - 2, planeY + 3);
-      // Cola tricolor venezolana
-      bgGraphics.fillStyle(0xffd600, 1); bgGraphics.fillRect(planeX - 11, planeY - 7, 3, 2);
-      bgGraphics.fillStyle(0x1565c0, 1); bgGraphics.fillRect(planeX - 11, planeY - 5, 3, 2);
-      bgGraphics.fillStyle(0xd32f2f, 1); bgGraphics.fillRect(planeX - 11, planeY - 3, 3, 2);
+        // Fuselaje del avión
+        bgGraphics.fillStyle(0xffffff, 0.95);
+        bgGraphics.fillRoundedRect(planeX - 12, planeY - 3, 28, 6, 2);
+        // Alas
+        bgGraphics.fillTriangle(planeX - 2, planeY - 14, planeX + 8, planeY - 3, planeX - 2, planeY - 3);
+        bgGraphics.fillTriangle(planeX - 2, planeY + 14, planeX + 8, planeY + 3, planeX - 2, planeY + 3);
+        // Cola tricolor venezolana
+        bgGraphics.fillStyle(0xffd600, 1); bgGraphics.fillRect(planeX - 11, planeY - 7, 3, 2);
+        bgGraphics.fillStyle(0x1565c0, 1); bgGraphics.fillRect(planeX - 11, planeY - 5, 3, 2);
+        bgGraphics.fillStyle(0xd32f2f, 1); bgGraphics.fillRect(planeX - 11, planeY - 3, 3, 2);
 
-      // Luz roja intermitente en el ala
-      if (Math.floor(timeSec * 4) % 2 === 0) {
-        bgGraphics.fillStyle(0xff1744, 1);
-        bgGraphics.fillCircle(planeX - 2, planeY - 14, 2);
+        // Luz roja intermitente en el ala
+        if (Math.floor(timeSec * 4) % 2 === 0) {
+          bgGraphics.fillStyle(0xff1744, 1);
+          bgGraphics.fillCircle(planeX - 2, planeY - 14, 2);
+        }
       }
     }
   }
 
-  // 6. ESPACIO CON ESTRELLAS, SATÉLITE Y PLANETA TIERRA (MUNDO) ABAJO (1000m+)
-  if (alt >= 1000) {
+  // 6. ESPACIO CON ESTRELLAS, SATÉLITE Y PLANETA TIERRA (MUNDO) ABAJO (1050m+)
+  if (alt >= 1050) {
     // Estrellas titilantes en el espacio
-    const starCount = Math.min(65, 25 + Math.floor((alt - 1000) * 0.03));
+    const starCount = Math.min(65, 25 + Math.floor((alt - 1050) * 0.03));
     bgGraphics.fillStyle(0xffffff, 0.95);
     for (let i = 0; i < starCount; i++) {
       const sx = ((i * 73) % GAME_WIDTH);
@@ -1676,30 +1621,32 @@ function renderDynamicBackground() {
       bgGraphics.fillCircle(sx, sy, twinkle);
     }
 
-    // CURVATURA DEL PLANETA TIERRA (EL MUNDO) ABAJO
-    const earthY = 720 + ((alt - 1400) * 0.25);
-    if (earthY > 200 && earthY < GAME_HEIGHT + 450) {
-      // Brillo atmosférico azul
-      bgGraphics.lineStyle(6, 0x00e5ff, 0.5);
-      bgGraphics.strokeCircle(240, earthY + 360, 400);
+    // CURVATURA DEL PLANETA TIERRA (EL MUNDO) ABAJO (1200m a 2400m - Sin montaña, solo la Tierra en el espacio)
+    if (alt >= 1200 && alt <= 2400) {
+      const earthY = 620 + ((alt - 1200) * 0.35);
+      if (earthY > 160 && earthY < GAME_HEIGHT + 450) {
+        // Brillo atmosférico azul
+        bgGraphics.lineStyle(6, 0x00e5ff, 0.5);
+        bgGraphics.strokeCircle(240, earthY + 360, 400);
 
-      // Océanos azules de la Tierra
-      bgGraphics.fillStyle(0x1565c0, 0.9);
-      bgGraphics.fillCircle(240, earthY + 360, 396);
+        // Océanos azules de la Tierra
+        bgGraphics.fillStyle(0x1565c0, 0.9);
+        bgGraphics.fillCircle(240, earthY + 360, 396);
 
-      // Continentes verdes (Suramérica / Venezuela)
-      bgGraphics.fillStyle(0x2e7d32, 0.85);
-      bgGraphics.fillEllipse(220, earthY - 10, 85, 45);
-      bgGraphics.fillEllipse(280, earthY + 15, 65, 35);
+        // Continentes verdes (Suramérica / Venezuela)
+        bgGraphics.fillStyle(0x2e7d32, 0.85);
+        bgGraphics.fillEllipse(220, earthY - 10, 85, 45);
+        bgGraphics.fillEllipse(280, earthY + 15, 65, 35);
 
-      // Remolinos de nubes blancas en la Tierra
-      bgGraphics.fillStyle(0xffffff, 0.4);
-      bgGraphics.fillEllipse(180, earthY - 20, 60, 15);
-      bgGraphics.fillEllipse(260, earthY + 5, 80, 18);
+        // Remolinos de nubes blancas en la Tierra
+        bgGraphics.fillStyle(0xffffff, 0.4);
+        bgGraphics.fillEllipse(180, earthY - 20, 60, 15);
+        bgGraphics.fillEllipse(260, earthY + 5, 80, 18);
+      }
     }
 
     // SATÉLITE SIMÓN BOLÍVAR ORBITANDO
-    if (alt >= 1100 && alt <= 2200) {
+    if (alt >= 1100 && alt <= 2000) {
       const satY = ((alt * 0.3) % 460) + 80;
       bgGraphics.fillStyle(0xffd700, 1);
       bgGraphics.fillRect(360, satY, 22, 16);
@@ -1861,47 +1808,53 @@ function spawnAnt() {
     const rType = Math.random();
 
     let speed = baseSpeed;
-    let tex;
+    let tex1, tex2;
     let isGiant = false;
 
     if (!isSpaceShip) {
       if (rType < 0.38) {
-        tex = 'tex_ant_red';
+        tex1 = 'tex_ant_red_1';
+        tex2 = 'tex_ant_red_2';
       } else if (rType < 0.65) {
-        tex = 'tex_ant_black';
+        tex1 = 'tex_ant_black_1';
+        tex2 = 'tex_ant_black_2';
         speed *= 1.2;
       } else if (rType < 0.85) {
-        tex = 'tex_ant_fire';
+        tex1 = 'tex_ant_fire_1';
+        tex2 = 'tex_ant_fire_2';
         speed *= 1.4;
       } else {
-        // Hormiga grande / Bachaco bravo que baja por el camino
-        tex = 'tex_ant_giant';
+        // Hormiga grande / Bachaco bravo en perfil de lado
+        tex1 = 'tex_ant_giant_1';
+        tex2 = 'tex_ant_giant_2';
         speed *= 1.1;
         isGiant = true;
       }
     } else {
       if (rType < 0.45) {
-        tex = 'tex_ufo_scout';
+        tex1 = 'tex_ufo_scout';
         speed *= 1.35;
       } else if (rType < 0.75) {
-        tex = 'tex_ufo_fighter';
+        tex1 = 'tex_ufo_fighter';
         speed *= 1.6;
       } else {
-        tex = 'tex_ufo_cruiser';
+        tex1 = 'tex_ufo_cruiser';
         speed *= 1.25;
         isGiant = true;
       }
+      tex2 = null;
     }
 
     // Variación sutil de velocidad individual
     speed *= (0.94 + Math.random() * 0.14);
 
-    const enemyX = TRUNK_X[tIdx] + side * (isSpaceShip ? 8 : (isGiant ? 4 : 5));
+    const enemyX = TRUNK_X[tIdx] + side * (isSpaceShip ? 8 : (isGiant ? 7 : 6));
     // Escalonamiento vertical inteligente: crea cascadas zigzagueantes para que el jugador pueda maniobrar
     const staggerY = (idx * 26) + Math.floor(Math.random() * 20);
     const spawnY = -32 - staggerY;
-    const sprite = currentScene.add.sprite(enemyX, spawnY, tex).setDepth(15);
-    ants.push({ tIdx, side, speed, isSpaceShip, isGiant, sprite });
+    const sprite = currentScene.add.sprite(enemyX, spawnY, tex1).setDepth(15);
+    sprite.setFlipX(side === 1);
+    ants.push({ tIdx, side, speed, isSpaceShip, isGiant, tex1, tex2, animTimer: Math.random(), animFrame: 0, sprite });
   });
 }
 
@@ -1922,12 +1875,19 @@ function spawnMango() {
 function updateAnts(dt) {
   for (let i = ants.length - 1; i >= 0; i--) {
     const a = ants[i];
-    // Velocidad de caída autónoma: NO se frena cuando el chamito para de trepar
-    // Solo se suma un pequeño delta relativo si el chamito trepa activamente hacia arriba (W / ↑)
-    const climbRelative = held.P1_U ? 35 : (held.P1_D ? -20 : 0);
-    const fallSpeed = a.speed + climbRelative;
+    // Velocidad de caída autónoma: determinada puramente por los metros acumulados (NO cambia cuando el chamito sube o para)
+    a.sprite.y += a.speed * dt;
 
-    a.sprite.y += fallSpeed * dt;
+    // Animación de caminata de lado trepando por el tronco
+    if (!a.isSpaceShip && a.tex1 && a.tex2) {
+      a.animTimer += dt * (a.speed * 0.045);
+      if (a.animTimer >= 1.0) {
+        a.animTimer -= 1.0;
+        a.animFrame = (a.animFrame === 0) ? 1 : 0;
+        a.sprite.setTexture(a.animFrame === 0 ? a.tex1 : a.tex2);
+      }
+    }
+    a.sprite.setFlipX(a.side === 1);
 
     // Colisión con el chamito
     const dy = Math.abs(a.sprite.y - chamito.y);
@@ -1968,10 +1928,8 @@ function updateAnts(dt) {
 function updateMangos(dt) {
   for (let i = mangos.length - 1; i >= 0; i--) {
     const m = mangos[i];
-    // Velocidad autónoma según altitud (no se frena cuando el jugador para)
-    const climbRelative = held.P1_U ? 30 : (held.P1_D ? -15 : 0);
-    const fallSpeed = (m.speed || 120) + climbRelative;
-    m.sprite.y += fallSpeed * dt;
+    // Velocidad autónoma constante según los metros (NO cambia si el chamito sube o para)
+    m.sprite.y += (m.speed || 115) * dt;
 
     const dy = Math.abs(m.sprite.y - chamito.y);
 
