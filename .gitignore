@@ -6,5 +6,4 @@ yarn.lock
 *.log
 .env
 .env.local
-circuito_led_backup/
 version_canvas_laptop/
