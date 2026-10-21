@@ -325,6 +325,7 @@ let hudGraphics;
 let hudTexts = {};
 let centerMenuText;
 let starShield = [];
+let gameOverCooldown = 0;
 
 function create() {
   currentScene = this;
@@ -376,6 +377,15 @@ function create() {
     stroke: '#000000',
     strokeThickness: 3,
   }).setOrigin(0.5).setDepth(110);
+
+  // Soporte de clic/touch para iniciar o continuar
+  this.input.on('pointerdown', () => {
+    if (gameState === STATE_MENU) {
+      startFreshGame();
+    } else if (gameState === STATE_GAMEOVER && gameOverCooldown <= 0) {
+      startFreshGame();
+    }
+  });
 
   showMenuUI(true);
   renderDynamicBackground();
@@ -793,20 +803,11 @@ function drawCRTScanlines(scene) {
 function update(time, delta) {
   const dt = delta / 1000;
 
-  // Reinicio en cualquier momento con R, o con Espacio/Enter si está muriendo o en game over
-  if (justPressed.RESET || ((gameState === STATE_DYING || gameState === STATE_GAMEOVER) && justPressed.START1)) {
-    justPressed.RESET = false;
-    justPressed.START1 = false;
-    startFreshGame();
-    return;
-  }
-
-  // Menú principal (iniciar con Espacio, Enter, R o W/↑)
+  // Menú principal (iniciar con Espacio, Enter o clic)
   if (gameState === STATE_MENU) {
-    if (justPressed.START1 || justPressed.RESET || justPressed.P1_U || held.P1_U) {
+    if (justPressed.START1 || justPressed.RESET) {
       justPressed.START1 = false;
       justPressed.RESET = false;
-      justPressed.P1_U = false;
       startFreshGame();
     }
     return;
@@ -817,7 +818,7 @@ function update(time, delta) {
     justPressed.P1_1 = false;
     if (gameState === STATE_PLAYING) {
       gameState = STATE_PAUSED;
-      centerMenuText.setText('PAUSA\n\nPresiona P para seguir\nR para reiniciar').setVisible(true);
+      centerMenuText.setText('PAUSA\n\nPresiona P para continuar').setVisible(true);
       return;
     } else if (gameState === STATE_PAUSED) {
       gameState = STATE_PLAYING;
@@ -828,8 +829,13 @@ function update(time, delta) {
 
   if (gameState === STATE_PAUSED) return;
 
-  // Estado de Salto y Caída del Chamito
+  // Estado de Caída del Chamito al perder las vidas
   if (gameState === STATE_DYING) {
+    // Descartar teclas durante la animación de caída para que no salte el Game Over
+    justPressed.START1 = false;
+    justPressed.RESET = false;
+    justPressed.P1_U = false;
+
     chamito.deathVy += 26 * dt;
     chamito.y += chamito.deathVy;
     chamito.x += chamito.deathVx;
@@ -842,14 +848,30 @@ function update(time, delta) {
     return;
   }
 
-  // Game Over (Reiniciar con Espacio, Enter, R o W/↑)
+  // Game Over: El juego se detiene aquí y espera a que el jugador vea su récord
   if (gameState === STATE_GAMEOVER) {
-    if (justPressed.START1 || justPressed.RESET || justPressed.P1_U) {
+    // Si aún está en el cooldown obligatorio de 1.2 segundos, no aceptar teclas para evitar reinicio inmediato accidental
+    if (gameOverCooldown > 0) {
+      gameOverCooldown -= dt;
       justPressed.START1 = false;
       justPressed.RESET = false;
       justPressed.P1_U = false;
+      return;
+    }
+
+    // Una vez pasado el cooldown, solo cuando el jugador presione Espacio o Enter se reinicia
+    if (justPressed.START1 || justPressed.RESET) {
+      justPressed.START1 = false;
+      justPressed.RESET = false;
       startFreshGame();
     }
+    return;
+  }
+
+  // Tecla R como reset opcional en plena partida
+  if (justPressed.RESET) {
+    justPressed.RESET = false;
+    startFreshGame();
     return;
   }
 
@@ -1590,6 +1612,11 @@ function triggerChamitoDeath() {
 
 function triggerGameOver() {
   gameState = STATE_GAMEOVER;
+  gameOverCooldown = 1.2; // 1.2s de pausa obligatoria para no reiniciar por accidente
+  justPressed.START1 = false;
+  justPressed.RESET = false;
+  justPressed.P1_U = false;
+
   sfx.gameOver();
 
   if (score > highScore) {
@@ -1604,7 +1631,7 @@ function triggerGameOver() {
   broadcastStats();
 
   centerMenuText.setText(
-    `¡FIN DEL JUEGO!\n\nPUNTAJE: ${score}\nMANGOS: ${mangosCount}\nALTURA: ${Math.floor(altitude)}m\n\nPresiona ESPACIO, ENTER o R\npara jugar de nuevo`
+    `¡FIN DEL JUEGO!\n\nPUNTAJE: ${score}\nMANGOS: ${mangosCount}\nALTURA: ${Math.floor(altitude)}m\n\nPresiona ESPACIO o ENTER\npara continuar`
   ).setVisible(true);
 }
 
@@ -1626,7 +1653,7 @@ function updateHUD() {
 function showMenuUI(visible) {
   if (visible) {
     centerMenuText.setText(
-      'CHAMITO\n★ LA MATA DE MANGO ★\n\nEsquiva las hormigas\ny agarra los mangos\n\nPresiona ESPACIO, ENTER o W / ↑\npara jugar'
+      'CHAMITO\n★ LA MATA DE MANGO ★\n\nEsquiva las hormigas\ny agarra los mangos\n\nPresiona ESPACIO o ENTER\npara jugar'
     ).setVisible(true);
   }
 }
