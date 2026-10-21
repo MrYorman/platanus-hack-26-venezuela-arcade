@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>CHAMITO - Edición Arcade</title>
+  <title>CHAMITO - CRT Arcade Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -15,7 +18,9 @@
 
     :root {
       --crt-green: #39ff6e;
+      --crt-dark-green: #0a2f16;
       --crt-gold: #ffe600;
+      --crt-amber: #ffaa00;
       --crt-bg: #031007;
       --crt-border: #1fa347;
       --crt-glow: rgba(57, 255, 110, 0.45);
@@ -24,8 +29,9 @@
     body {
       background: radial-gradient(ellipse at center, #061c0e 0%, #030d06 65%, #010502 100%);
       color: var(--crt-green);
-      font-family: 'Press Start 2P', monospace, monospace;
+      font-family: 'Press Start 2P', monospace, sans-serif;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -35,7 +41,7 @@
       position: relative;
     }
 
-    /* Scanlines globales de monitor CRT */
+    /* Scanlines globales del monitor CRT */
     body::before {
       content: " ";
       display: block;
@@ -97,7 +103,7 @@
     }
 
     .title-box h1 {
-      font-size: clamp(14px, 2.2vw, 18px);
+      font-size: clamp(12px, 2.2vw, 16px);
       color: var(--crt-gold);
       text-shadow: 
         0 0 8px rgba(255, 230, 0, 0.75), 
@@ -133,9 +139,8 @@
       color: var(--crt-green);
       padding: 6px 12px;
       border-radius: 6px;
-      font-family: monospace;
-      font-size: clamp(8px, 1.1vw, 10px);
-      font-weight: bold;
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(8px, 1.1vw, 9px);
       cursor: pointer;
       transition: all 0.2s ease;
       text-shadow: 0 0 6px var(--crt-glow);
@@ -153,7 +158,7 @@
       transform: translateY(-1px);
     }
 
-    /* Main Container (Canvas + Dashboard) */
+    /* Main Container (Arcade Screen + Side Panel) */
     #main-container {
       display: flex;
       gap: clamp(10px, 2vw, 20px);
@@ -173,12 +178,13 @@
         inset 0 0 30px rgba(0, 0, 0, 0.9);
       background: #000;
       overflow: hidden;
+      line-height: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       max-width: 100%;
-      height: min(600px, 72vh, calc(100vh - 170px));
-      aspect-ratio: 4 / 3;
+      height: min(640px, 72vh, calc(100vh - 170px));
+      aspect-ratio: 480 / 640;
     }
 
     #game-root {
@@ -187,13 +193,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #000;
+      background: #041008;
     }
 
     #game-root canvas {
       width: 100% !important;
       height: 100% !important;
       object-fit: contain;
+      display: block;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
@@ -205,21 +212,21 @@
       background: 
         linear-gradient(
           rgba(18, 16, 16, 0) 50%,
-          rgba(0, 0, 0, 0.25) 50%
+          rgba(0, 0, 0, 0.35) 50%
         ),
         radial-gradient(
           circle at center,
           rgba(0, 0, 0, 0) 55%,
-          rgba(0, 0, 0, 0.5) 100%
+          rgba(0, 0, 0, 0.6) 100%
         );
       background-size: 100% 4px, 100% 100%;
-      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.85);
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.85);
       z-index: 5;
     }
 
     /* Side / Info Panel CRT */
     #side-panel {
-      width: 250px;
+      width: 270px;
       display: flex;
       flex-direction: column;
       gap: clamp(10px, 1.8vh, 16px);
@@ -238,7 +245,7 @@
     }
 
     .card h2 {
-      font-size: 10px;
+      font-size: 9px;
       color: var(--crt-gold);
       margin-bottom: 10px;
       display: flex;
@@ -248,23 +255,6 @@
       padding-bottom: 6px;
       text-shadow: 0 0 8px rgba(255, 230, 0, 0.6);
       letter-spacing: 0.5px;
-    }
-
-    .instructions-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 9px;
-      line-height: 1.5;
-      color: #bbf7cb;
-    }
-
-    .instructions-list li {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      text-shadow: 0 0 4px rgba(57, 255, 110, 0.3);
     }
 
     .stat-row {
@@ -295,6 +285,23 @@
       text-shadow: 0 0 8px rgba(255, 230, 0, 0.8);
     }
 
+    .instructions-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 8px;
+      line-height: 1.5;
+      color: #bbf7cb;
+    }
+
+    .instructions-list li {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      text-shadow: 0 0 4px rgba(57, 255, 110, 0.3);
+    }
+
     /* Footer Controls Bar CRT */
     footer {
       font-size: clamp(7px, 1.1vw, 9px);
@@ -314,14 +321,13 @@
       text-shadow: 0 0 6px rgba(255, 230, 0, 0.7);
     }
 
-    /* Responsivo para pantallas pequeñas y laptops */
+    /* Responsivo para laptops y móviles */
     @media (max-width: 860px) {
       #main-container {
         flex-direction: column;
       }
       #side-panel {
-        width: 100%;
-        max-width: 480px;
+        width: min(100%, 480px);
         flex-direction: row;
       }
       .card {
@@ -330,7 +336,7 @@
     }
   </style>
 
-  <!-- Carga Phaser localmente primero (sin internet) o mediante CDN -->
+  <!-- Carga Phaser localmente (instantáneo offline) o mediante CDN -->
   <script src="phaser.min.js"></script>
   <script>
     if (typeof Phaser === 'undefined') {
@@ -371,7 +377,7 @@
         <div class="crt-screen-fx"></div>
       </div>
 
-      <!-- Dashboard CRT Lateral -->
+      <!-- Dashboard CRT (Tarjetas laterales en HTML, no dentro del juego!) -->
       <div id="side-panel">
         <!-- Tarjeta de Controles CRT -->
         <div class="card">
@@ -406,18 +412,18 @@
 
         <!-- Tarjeta de Estadísticas CRT -->
         <div class="card">
-          <h2>🏆 INFORMACIÓN</h2>
+          <h2>🏆 TU RÉCORD</h2>
           <div class="stat-row">
-            <span class="stat-label">MISIÓN:</span>
-            <span class="stat-val gold">AGARRAR MANGOS</span>
+            <span class="stat-label">RÉCORD:</span>
+            <span id="bestScoreText" class="stat-val gold">0</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">PELIGRO:</span>
-            <span class="stat-val" style="color: #ff5252;">HORMIGAS</span>
+            <span class="stat-label">ALTURA:</span>
+            <span id="maxHeightText" class="stat-val">0 m</span>
           </div>
           <div class="stat-row">
-            <span class="stat-label">SUPER PODER:</span>
-            <span class="stat-val gold">MANGO DE ORO 🌟</span>
+            <span class="stat-label">MANGOS:</span>
+            <span id="totalMangosText" class="stat-val gold">0 🥭</span>
           </div>
         </div>
       </div>
@@ -426,7 +432,7 @@
 
     <!-- Bottom CRT Details -->
     <footer>
-      <div>CHAMITO • <span class="highlight">EDICIÓN VENEZUELA ARCADE</span></div>
+      <div>MODO LAPTOP: <span class="highlight">WASD ACTIVO</span></div>
       <div>•</div>
       <div>ATRAPA EL <span class="highlight">MANGO DE ORO 🌟</span> Y SÉ INVENCIBLE</div>
     </footer>
@@ -440,9 +446,22 @@
         document.getElementById('btnMute').innerText = sfx.muted ? '🔇 SONIDO: OFF' : '🔊 SONIDO: ON';
       }
     }
+
+    // Actualización de tarjetas HTML en tiempo real sincronizada con Phaser
+    window.updateHtmlCards = function() {
+      if (window.chamitoStats) {
+        const s = window.chamitoStats;
+        const bestEl = document.getElementById('bestScoreText');
+        const heightEl = document.getElementById('maxHeightText');
+        const mangosEl = document.getElementById('totalMangosText');
+        if (bestEl) bestEl.innerText = s.highScore || s.score || 0;
+        if (heightEl) heightEl.innerText = (s.bestAltitude || s.altitude || 0) + ' m';
+        if (mangosEl) mangosEl.innerText = (s.mangos || 0) + ' 🥭';
+      }
+    };
   </script>
 
-  <!-- Game Logic Script -->
+  <!-- Lógica del juego en Phaser 3 -->
   <script src="game.js"></script>
 </body>
 </html>

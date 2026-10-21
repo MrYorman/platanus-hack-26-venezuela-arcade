@@ -2,8 +2,8 @@
 // CHAMITO: LA MATA DE MANGO
 // Recreación en Phaser 3 del clásico juego de los celulares Vergatarios en Venezuela
 
-const GAME_WIDTH = 800;
-const GAME_HEIGHT = 600;
+const GAME_WIDTH = 480;
+const GAME_HEIGHT = 640;
 
 // Mapeo obligatorio de controles para el mueble arcade físico
 const CABINET_KEYS = {
@@ -79,7 +79,7 @@ function getStorage() {
   };
 }
 
-// --- Audio Sintetizado (Web Audio API sin archivos externos) ---
+// --- Audio Sintetizado (Web Audio API - Sin archivos externos) ---
 class ArcadeAudio {
   constructor(soundManager) {
     this.sound = soundManager;
@@ -110,11 +110,11 @@ class ArcadeAudio {
   }
 
   jump() {
-    this.playTone(300, 'sine', 0.1, 0.22, 580);
+    this.playTone(320, 'sine', 0.1, 0.22, 620);
   }
 
   munch() {
-    this.playTone(580, 'square', 0.09, 0.18, 920);
+    this.playTone(590, 'square', 0.08, 0.18, 940);
   }
 
   golden() {
@@ -133,10 +133,10 @@ class ArcadeAudio {
 
   chamitoFall() {
     // Salto cómico sorprendido hacia arriba y silbido al caer de la mata de mango
-    this.playTone(400, 'sine', 0.15, 0.35, 820);
+    this.playTone(420, 'sine', 0.14, 0.35, 840);
     setTimeout(() => {
       this.playTone(680, 'sawtooth', 0.65, 0.3, 65);
-    }, 140);
+    }, 130);
   }
 
   gameOver() {
@@ -173,8 +173,8 @@ class ArcadeAudio {
 
 // --- CONSTANTES DEL JUEGO ---
 const NUM_TRUNKS = 4;
-const TRUNK_X = [260, 350, 450, 540]; // 4 Troncos de la mata de mango en el centro
-const OFFSET_X = 22; // Distancia a la izq o der del tronco
+const TRUNK_X = [80, 180, 300, 400]; // 4 Troncos de la mata de mango repartidos en 480px
+const OFFSET_X = 24; // Distancia al abrazar el tronco
 
 const STATE_MENU = 0;
 const STATE_PLAYING = 1;
@@ -212,6 +212,7 @@ let mangosCount = 0;
 let lives = 3;
 let altitude = 0;
 let highScore = 0;
+let bestAltitude = 0;
 let superTimer = 0;
 let invulTimer = 0;
 let scrollSpeed = 2.0;
@@ -222,20 +223,27 @@ let chamito = {
   side: 1,
   x: TRUNK_X[1] + OFFSET_X,
   targetX: TRUNK_X[1] + OFFSET_X,
-  y: 430,
-  targetY: 430,
+  y: 470,
+  targetY: 470,
   sprite: null,
   isDying: false,
   deathVx: 0,
   deathVy: 0,
+  animTick: 0,
 };
 
 let ants = [];
 let mangos = [];
+let floatingTexts = [];
 let antSpawnTimer = 0;
 let mangoSpawnTimer = 0;
 
-let uiTexts = {};
+// Capas de fondo
+let bgGraphics;
+let treeGraphics;
+let hudGraphics;
+let hudTexts = {};
+let centerMenuText;
 
 function create() {
   currentScene = this;
@@ -245,401 +253,345 @@ function create() {
   getStorage().get('chamito_high_score').then((res) => {
     if (res.found && typeof res.value === 'number') {
       highScore = res.value;
-      if (uiTexts.high) uiTexts.high.setText(`${highScore}`);
+      broadcastStats();
+    }
+  });
+  getStorage().get('chamito_best_altitude').then((res) => {
+    if (res.found && typeof res.value === 'number') {
+      bestAltitude = res.value;
+      broadcastStats();
     }
   });
 
   // Generar texturas de forma 100% procedimental
   generateProceduralTextures(this);
 
-  // 1. Fondo del patio venezolano / El Ávila
-  this.add.rectangle(400, 300, 800, 600, 0x071e11);
-  drawBackdrop(this);
+  // 1. Capas Gráficas
+  bgGraphics = this.add.graphics().setDepth(1);
+  treeGraphics = this.add.graphics().setDepth(5);
 
-  // 2. Los 4 Troncos de la Mata de Mango
-  drawMangoTrees(this);
-
-  // 3. Sprite del Chamito
+  // 2. Sprite del Chamito
   chamito.sprite = this.add.sprite(chamito.x, chamito.y, 'tex_chamito').setDepth(20);
 
-  // 4. Grupo de HUD y Paneles laterales estilo CRT
-  createArcadeHUD(this);
+  // 3. HUD elegante superior (solo 42px de alto, NO cards adentro!)
+  createSleekHUD(this);
 
-  // 5. Capa CRT y Viñeta
-  drawCRTFilter(this);
+  // 4. Scanlines CRT del canvas
+  drawCRTScanlines(this);
 
-  // Inicializar estado del menú
+  // 5. Menú Inicial
+  centerMenuText = this.add.text(240, 320, '', {
+    fontFamily: 'monospace',
+    fontSize: '18px',
+    color: '#ffe600',
+    align: 'center',
+    backgroundColor: '#031208',
+    padding: { x: 18, y: 14 },
+    lineSpacing: 6,
+  }).setOrigin(0.5).setDepth(50);
+
   showMenuUI(true);
 }
 
-// --- GENERACIÓN DE TEXTURAS PROCEDURALES (CERO ASSETS EXTERNOS) ---
+// --- GENERACIÓN DE TEXTURAS PROCEDURALES ---
 function generateProceduralTextures(scene) {
-  // 1. Chamito (Niño venezolano con morral tricolor)
+  // 1. Chamito (Niño con morral tricolor venezolano)
   const gC = scene.make.graphics({ x: 0, y: 0, add: false });
   
-  // Piernas y shorts azul escolar
+  // Shorts azul escolar
   gC.fillStyle(0x1a237e, 1);
-  gC.fillRect(10, 26, 6, 12);
-  gC.fillRect(18, 26, 6, 12);
+  gC.fillRect(11, 27, 6, 12);
+  gC.fillRect(19, 27, 6, 12);
   // Zapatitos marrones
-  gC.fillStyle(0x3e2723, 1);
-  gC.fillRect(9, 36, 7, 5);
-  gC.fillRect(18, 36, 7, 5);
+  gC.fillStyle(0x4e342e, 1);
+  gC.fillRect(10, 38, 7, 5);
+  gC.fillRect(19, 38, 7, 5);
 
-  // Torso / Camisa escolar beige/clara
+  // Camisa escolar blanca/beige
   gC.fillStyle(0xf5f5f5, 1);
-  gC.fillRoundedRect(9, 15, 16, 13, 3);
+  gC.fillRoundedRect(10, 16, 16, 13, 3);
 
-  // Morral tricolor en la espalda (amarillo, azul con estrellas, rojo)
-  gC.fillStyle(0xffd600, 1); // Franja Amarilla
-  gC.fillRect(1, 16, 8, 4);
-  gC.fillStyle(0x1565c0, 1); // Franja Azul
-  gC.fillRect(1, 20, 8, 4);
-  // Estrellitas en el azul
+  // Morral tricolor en la espalda
+  // Franja Amarilla
+  gC.fillStyle(0xffd600, 1);
+  gC.fillRect(2, 17, 8, 4);
+  // Franja Azul con estrellitas
+  gC.fillStyle(0x1565c0, 1);
+  gC.fillRect(2, 21, 8, 4);
   gC.fillStyle(0xffffff, 1);
-  gC.fillRect(3, 21, 1.5, 1.5);
-  gC.fillRect(6, 21, 1.5, 1.5);
-  gC.fillStyle(0xd32f2f, 1); // Franja Roja
-  gC.fillRect(1, 24, 8, 4);
+  gC.fillRect(4, 22, 1.5, 1.5);
+  gC.fillRect(7, 22, 1.5, 1.5);
+  // Franja Roja
+  gC.fillStyle(0xd32f2f, 1);
+  gC.fillRect(2, 25, 8, 4);
 
   // Brazos agarrando el tronco
   gC.fillStyle(0xd7a17c, 1);
-  gC.fillCircle(24, 18, 4);
-  gC.fillCircle(24, 25, 4);
+  gC.fillCircle(25, 19, 4);
+  gC.fillCircle(25, 26, 4);
 
-  // Cuello y Cabeza del Chamito
+  // Cabeza del chamito
   gC.fillStyle(0xd7a17c, 1);
-  gC.fillCircle(17, 10, 8);
-  // Cabello negro ondulado
+  gC.fillCircle(18, 10, 8);
+  // Cabello negro peinado hacia un lado
   gC.fillStyle(0x212121, 1);
-  gC.fillCircle(16, 6, 7);
-  gC.fillCircle(20, 7, 5);
-  gC.fillCircle(12, 8, 5);
+  gC.fillCircle(17, 6, 7.5);
+  gC.fillCircle(21, 7, 5.5);
+  gC.fillCircle(13, 8, 5.5);
 
-  // Oreja
+  // Orejita
   gC.fillStyle(0xd7a17c, 1);
   gC.fillCircle(10, 10, 2.5);
 
   // Ojo alegre
   gC.fillStyle(0xffffff, 1);
-  gC.fillCircle(19, 9, 2.5);
+  gC.fillCircle(20, 9, 2.5);
   gC.fillStyle(0x000000, 1);
-  gC.fillCircle(20, 9, 1.4);
+  gC.fillCircle(21, 9, 1.4);
 
   // Sonrisa
   gC.lineStyle(1.4, 0x5d4037, 1);
   gC.beginPath();
-  gC.arc(19, 13, 2.5, 0.2, Math.PI * 0.9, false);
+  gC.arc(20, 13, 2.5, 0.2, Math.PI * 0.9, false);
   gC.strokePath();
 
-  gC.generateTexture('tex_chamito', 36, 44);
+  gC.generateTexture('tex_chamito', 38, 46);
   gC.destroy();
 
-  // 2. Chamito golpeado / cayendo (Ojos X X, boca O)
+  // 2. Chamito golpeado / cayendo (Ojos X X, boca en O)
   const gCH = scene.make.graphics({ x: 0, y: 0, add: false });
   gCH.fillStyle(0x1a237e, 1);
-  gCH.fillRect(10, 26, 6, 12);
-  gCH.fillRect(18, 26, 6, 12);
-  gCH.fillStyle(0x3e2723, 1);
-  gCH.fillRect(9, 36, 7, 5);
-  gCH.fillRect(18, 36, 7, 5);
+  gCH.fillRect(11, 27, 6, 12);
+  gCH.fillRect(19, 27, 6, 12);
+  gCH.fillStyle(0x4e342e, 1);
+  gCH.fillRect(10, 38, 7, 5);
+  gCH.fillRect(19, 38, 7, 5);
 
   gCH.fillStyle(0xf5f5f5, 1);
-  gCH.fillRoundedRect(9, 15, 16, 13, 3);
+  gCH.fillRoundedRect(10, 16, 16, 13, 3);
 
   // Morral tricolor
   gCH.fillStyle(0xffd600, 1);
-  gCH.fillRect(1, 16, 8, 4);
+  gCH.fillRect(2, 17, 8, 4);
   gCH.fillStyle(0x1565c0, 1);
-  gCH.fillRect(1, 20, 8, 4);
+  gCH.fillRect(2, 21, 8, 4);
   gCH.fillStyle(0xffffff, 1);
-  gCH.fillRect(3, 21, 1.5, 1.5);
-  gCH.fillRect(6, 21, 1.5, 1.5);
+  gCH.fillRect(4, 22, 1.5, 1.5);
+  gCH.fillRect(7, 22, 1.5, 1.5);
   gCH.fillStyle(0xd32f2f, 1);
-  gCH.fillRect(1, 24, 8, 4);
+  gCH.fillRect(2, 25, 8, 4);
 
   // Brazos abiertos por la caída
   gCH.fillStyle(0xd7a17c, 1);
-  gCH.fillCircle(25, 15, 4);
-  gCH.fillCircle(7, 15, 4);
+  gCH.fillCircle(27, 16, 4);
+  gCH.fillCircle(8, 16, 4);
 
   // Cabeza
   gCH.fillStyle(0xd7a17c, 1);
-  gCH.fillCircle(17, 10, 8);
+  gCH.fillCircle(18, 10, 8);
   gCH.fillStyle(0x212121, 1);
-  gCH.fillCircle(16, 6, 7);
-  gCH.fillCircle(20, 7, 5);
-  gCH.fillCircle(12, 8, 5);
+  gCH.fillCircle(17, 6, 7.5);
+  gCH.fillCircle(21, 7, 5.5);
+  gCH.fillCircle(13, 8, 5.5);
 
   // Ojos X X
   gCH.lineStyle(1.8, 0x000000, 1);
   gCH.beginPath();
-  gCH.moveTo(13, 7); gCH.lineTo(17, 11);
-  gCH.moveTo(17, 7); gCH.lineTo(13, 11);
-  gCH.moveTo(18, 7); gCH.lineTo(22, 11);
-  gCH.moveTo(22, 7); gCH.lineTo(18, 11);
+  gCH.moveTo(14, 7); gCH.lineTo(18, 11);
+  gCH.moveTo(18, 7); gCH.lineTo(14, 11);
+  gCH.moveTo(19, 7); gCH.lineTo(23, 11);
+  gCH.moveTo(23, 7); gCH.lineTo(19, 11);
   gCH.strokePath();
 
-  // Boca abierta "O"
+  // Boca abierta "O" de susto
   gCH.fillStyle(0x3e2723, 1);
-  gCH.fillCircle(17, 14, 2.5);
+  gCH.fillCircle(18, 14, 2.5);
 
-  gCH.generateTexture('tex_chamito_hurt', 36, 44);
+  gCH.generateTexture('tex_chamito_hurt', 38, 46);
   gCH.destroy();
 
-  // 3. Mango Criollo Maduro (Rojo, Amarillo, Verde)
+  // 3. Mango Criollo Maduro (Silueta inconfundible con degradado verde, amarillo, rojo)
   const gM = scene.make.graphics({ x: 0, y: 0, add: false });
-  // Cuerpo del mango con curva criolla
-  gM.fillStyle(0x7cb342, 1); // Toque verde
-  gM.fillEllipse(9, 13, 8, 11);
-  gM.fillStyle(0xffb300, 1); // Amarillo pulpa
-  gM.fillEllipse(12, 13, 10, 12);
-  gM.fillStyle(0xd32f2f, 0.9); // Chapa roja del sol
-  gM.fillEllipse(15, 13, 7, 10);
+  gM.fillStyle(0x7cb342, 1);
+  gM.fillEllipse(10, 14, 9, 12);
+  gM.fillStyle(0xffb300, 1);
+  gM.fillEllipse(13, 14, 11, 13);
+  gM.fillStyle(0xd32f2f, 0.92);
+  gM.fillEllipse(16, 14, 8, 11);
 
-  // Tallito marrón y hojita verde
+  // Brillo
+  gM.fillStyle(0xffffff, 0.45);
+  gM.fillCircle(11, 10, 2.5);
+
+  // Tallito y hoja
   gM.fillStyle(0x5d4037, 1);
-  gM.fillRect(11, 2, 2, 4);
+  gM.fillRect(12, 2, 2, 4);
   gM.fillStyle(0x2e7d32, 1);
-  gM.fillTriangle(13, 3, 20, 1, 16, 6);
+  gM.fillTriangle(14, 3, 21, 1, 17, 6);
 
-  gM.generateTexture('tex_mango', 24, 26);
+  gM.generateTexture('tex_mango', 26, 28);
   gM.destroy();
 
-  // 4. Mango de Oro (Super Mango invencible)
+  // 4. Mango de Oro (Super Mango invencible con aura)
   const gMG = scene.make.graphics({ x: 0, y: 0, add: false });
   gMG.fillStyle(0xffd700, 1);
-  gMG.fillCircle(12, 12, 11);
+  gMG.fillCircle(13, 13, 12);
   gMG.fillStyle(0xffea00, 1);
-  gMG.fillCircle(12, 12, 8);
+  gMG.fillCircle(13, 13, 9);
   gMG.fillStyle(0xffffff, 1);
-  gMG.fillCircle(9, 8, 3.5);
-  // Brillo
-  gMG.lineStyle(1.5, 0xffffff, 1);
+  gMG.fillCircle(10, 9, 3.5);
+  // Destellos estelares
+  gMG.lineStyle(1.6, 0xffffff, 1);
   gMG.beginPath();
-  gMG.moveTo(12, 1); gMG.lineTo(12, 5);
-  gMG.moveTo(12, 19); gMG.lineTo(12, 23);
-  gMG.moveTo(1, 12); gMG.lineTo(5, 12);
-  gMG.moveTo(19, 12); gMG.lineTo(23, 12);
+  gMG.moveTo(13, 1); gMG.lineTo(13, 5);
+  gMG.moveTo(13, 21); gMG.lineTo(13, 25);
+  gMG.moveTo(1, 13); gMG.lineTo(5, 13);
+  gMG.moveTo(21, 13); gMG.lineTo(25, 13);
   gMG.strokePath();
 
-  gMG.generateTexture('tex_mango_gold', 24, 24);
+  gMG.generateTexture('tex_mango_gold', 26, 26);
   gMG.destroy();
 
-  // 5. Hormiga Roja Caraqueña
+  // 5. Hormiga Roja Caraqueña (Grande, anatómica y bien definida)
   const gAR = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Abdomen trasero
   gAR.fillStyle(0xd32f2f, 1);
-  gAR.fillEllipse(10, 6, 7, 10); // Abdomen
-  gAR.fillEllipse(10, 13, 5, 6);  // Tórax
+  gAR.fillEllipse(12, 7, 8, 11);
+  // Rayas del abdomen
+  gAR.lineStyle(1, 0xb71c1c, 0.9);
+  gAR.lineBetween(8, 6, 16, 6);
+  gAR.lineBetween(8, 9, 16, 9);
+
+  // Tórax
   gAR.fillStyle(0xb71c1c, 1);
-  gAR.fillCircle(10, 19, 4.5);   // Cabeza
-  gAR.lineStyle(1.4, 0xd32f2f, 1);
+  gAR.fillEllipse(12, 15, 6, 7);
+
+  // Cabeza delantera
+  gAR.fillStyle(0xc62828, 1);
+  gAR.fillCircle(12, 22, 5.5);
+
+  // Ojitos
+  gAR.fillStyle(0xffffff, 1);
+  gAR.fillCircle(10, 21, 1.4);
+  gAR.fillCircle(14, 21, 1.4);
+  gAR.fillStyle(0x000000, 1);
+  gAR.fillCircle(10, 22, 0.9);
+  gAR.fillCircle(14, 22, 0.9);
+
+  // Mandíbulas afiladas
+  gAR.lineStyle(1.5, 0xffffff, 1);
   gAR.beginPath();
-  gAR.moveTo(4, 9); gAR.lineTo(16, 9);
-  gAR.moveTo(3, 13); gAR.lineTo(17, 13);
-  gAR.moveTo(4, 17); gAR.lineTo(16, 17);
+  gAR.moveTo(10, 26); gAR.lineTo(8, 29);
+  gAR.moveTo(14, 26); gAR.lineTo(16, 29);
   gAR.strokePath();
-  gAR.generateTexture('tex_ant_red', 20, 26);
+
+  // Antenas
+  gAR.lineStyle(1.4, 0xb71c1c, 1);
+  gAR.beginPath();
+  gAR.moveTo(10, 20); gAR.lineTo(6, 16);
+  gAR.moveTo(14, 20); gAR.lineTo(18, 16);
+  gAR.strokePath();
+
+  // 6 Patas articuladas
+  gAR.lineStyle(1.8, 0xd32f2f, 1);
+  gAR.beginPath();
+  // Patas delanteras
+  gAR.moveTo(12, 19); gAR.lineTo(3, 16);
+  gAR.moveTo(12, 19); gAR.lineTo(21, 16);
+  // Patas medias
+  gAR.moveTo(12, 15); gAR.lineTo(2, 15);
+  gAR.moveTo(12, 15); gAR.lineTo(22, 15);
+  // Patas traseras
+  gAR.moveTo(12, 11); gAR.lineTo(3, 8);
+  gAR.moveTo(12, 11); gAR.lineTo(21, 8);
+  gAR.strokePath();
+
+  gAR.generateTexture('tex_ant_red', 24, 32);
   gAR.destroy();
 
   // 6. Hormiga Negra Guerrera
   const gAB = scene.make.graphics({ x: 0, y: 0, add: false });
   gAB.fillStyle(0x212121, 1);
-  gAB.fillEllipse(11, 7, 8, 11);
-  gAB.fillEllipse(11, 14, 6, 7);
+  gAB.fillEllipse(13, 8, 9, 12);
+  gAB.fillStyle(0x111111, 1);
+  gAB.fillEllipse(13, 16, 7, 8);
   gAB.fillStyle(0x000000, 1);
-  gAB.fillCircle(11, 21, 5);
-  gAB.lineStyle(1.5, 0x424242, 1);
+  gAB.fillCircle(13, 24, 6);
+
+  gAB.fillStyle(0xffffff, 1);
+  gAB.fillCircle(11, 23, 1.5);
+  gAB.fillCircle(15, 23, 1.5);
+
+  gAB.lineStyle(1.5, 0xffffff, 1);
   gAB.beginPath();
-  gAB.moveTo(3, 10); gAB.lineTo(19, 10);
-  gAB.moveTo(2, 14); gAB.lineTo(20, 14);
-  gAB.moveTo(3, 19); gAB.lineTo(19, 19);
+  gAB.moveTo(11, 28); gAB.lineTo(9, 31);
+  gAB.moveTo(15, 28); gAB.lineTo(17, 31);
   gAB.strokePath();
-  gAB.generateTexture('tex_ant_black', 22, 28);
+
+  gAB.lineStyle(1.8, 0x424242, 1);
+  gAB.beginPath();
+  gAB.moveTo(13, 21); gAB.lineTo(3, 17);
+  gAB.moveTo(13, 21); gAB.lineTo(23, 17);
+  gAB.moveTo(13, 16); gAB.lineTo(2, 16);
+  gAB.moveTo(13, 16); gAB.lineTo(24, 16);
+  gAB.moveTo(13, 12); gAB.lineTo(3, 9);
+  gAB.moveTo(13, 12); gAB.lineTo(23, 9);
+  gAB.strokePath();
+
+  gAB.generateTexture('tex_ant_black', 26, 34);
   gAB.destroy();
 
   // 7. Hormiga de Fuego Bala
   const gAF = scene.make.graphics({ x: 0, y: 0, add: false });
   gAF.fillStyle(0xff6d00, 1);
-  gAF.fillEllipse(10, 6, 7, 10);
-  gAF.fillEllipse(10, 13, 5, 6);
+  gAF.fillEllipse(12, 7, 8, 11);
   gAF.fillStyle(0xdd2c00, 1);
-  gAF.fillCircle(10, 19, 4.5);
-  gAF.lineStyle(1.4, 0xff9100, 1);
+  gAF.fillEllipse(12, 15, 6, 7);
+  gAF.fillStyle(0xbf360c, 1);
+  gAF.fillCircle(12, 22, 5.5);
+
+  gAF.fillStyle(0xffff00, 1);
+  gAF.fillCircle(10, 21, 1.5);
+  gAF.fillCircle(14, 21, 1.5);
+
+  gAF.lineStyle(1.8, 0xff9100, 1);
   gAF.beginPath();
-  gAF.moveTo(4, 9); gAF.lineTo(16, 9);
-  gAF.moveTo(3, 13); gAF.lineTo(17, 13);
-  gAF.moveTo(4, 17); gAF.lineTo(16, 17);
+  gAF.moveTo(12, 19); gAF.lineTo(3, 16);
+  gAF.moveTo(12, 19); gAF.lineTo(21, 16);
+  gAF.moveTo(12, 15); gAF.lineTo(2, 15);
+  gAF.moveTo(12, 15); gAF.lineTo(22, 15);
+  gAF.moveTo(12, 11); gAF.lineTo(3, 8);
+  gAF.moveTo(12, 11); gAF.lineTo(21, 8);
   gAF.strokePath();
-  gAF.generateTexture('tex_ant_fire', 20, 26);
+
+  gAF.generateTexture('tex_ant_fire', 24, 32);
   gAF.destroy();
 }
 
-// --- ESCENARIO DE LA MATA DE MANGO Y PATIO VENEZOLANO ---
-function drawBackdrop(scene) {
-  const g = scene.add.graphics().setDepth(1);
+// --- HUD ELEGANTE SUPERIOR (Sin recuadros gigantes adentro!) ---
+function createSleekHUD(scene) {
+  hudGraphics = scene.add.graphics().setDepth(30);
 
-  // Silueta del Ávila y montañas al atardecer
-  g.fillStyle(0x0b2915, 0.7);
-  g.beginPath();
-  g.moveTo(0, 380);
-  g.lineTo(180, 260);
-  g.lineTo(340, 310);
-  g.lineTo(520, 240);
-  g.lineTo(700, 290);
-  g.lineTo(800, 270);
-  g.lineTo(800, 600);
-  g.lineTo(0, 600);
-  g.closePath();
-  g.fillPath();
+  // Barra delgada translúcida (solo 42 px)
+  hudGraphics.fillStyle(0x021107, 0.82);
+  hudGraphics.fillRect(0, 0, GAME_WIDTH, 42);
+  hudGraphics.lineStyle(1.5, 0x1fa347, 1);
+  hudGraphics.beginPath();
+  hudGraphics.moveTo(0, 42);
+  hudGraphics.lineTo(GAME_WIDTH, 42);
+  hudGraphics.strokePath();
 
-  // Casas de barrio lejanas con techos de zinc y tanques azules
-  g.fillStyle(0xa04020, 0.75); // Ladrillo
-  g.fillRect(50, 480, 70, 60);
-  g.fillRect(140, 460, 65, 75);
-  g.fillRect(610, 470, 75, 70);
-  g.fillRect(700, 490, 60, 50);
+  const font = { fontFamily: 'monospace', fontSize: '13px', color: '#ffffff', fontStyle: 'bold' };
 
-  // Techos de zinc
-  g.fillStyle(0x78909c, 0.9);
-  g.fillRect(45, 474, 80, 7);
-  g.fillRect(135, 454, 75, 7);
-  g.fillRect(605, 464, 85, 7);
-  g.fillRect(695, 484, 70, 7);
-
-  // Tanque azul en el techo
-  g.fillStyle(0x0277bd, 0.95);
-  g.fillRoundedRect(165, 436, 22, 18, 3);
-  g.fillRoundedRect(635, 446, 22, 18, 3);
-
-  // Follaje superior de la gran mata de mango
-  g.fillStyle(0x1b5e20, 0.85);
-  g.fillCircle(120, 40, 110);
-  g.fillCircle(280, 20, 130);
-  g.fillCircle(520, 25, 130);
-  g.fillCircle(680, 40, 110);
-
-  g.fillStyle(0x2e7d32, 0.75);
-  g.fillCircle(200, 60, 90);
-  g.fillCircle(600, 60, 90);
+  hudTexts.lives = scene.add.text(12, 12, '❤️❤️❤️', { fontSize: '14px' }).setDepth(31);
+  hudTexts.mangos = scene.add.text(110, 13, '0 🥭', { fontFamily: 'monospace', fontSize: '13px', color: '#ffe600', fontStyle: 'bold' }).setDepth(31);
+  hudTexts.altitude = scene.add.text(210, 13, '0m', { fontFamily: 'monospace', fontSize: '13px', color: '#80e27e' }).setDepth(31);
+  hudTexts.score = scene.add.text(GAME_WIDTH - 16, 13, '0', font).setOrigin(1, 0).setDepth(31);
 }
 
-function drawMangoTrees(scene) {
-  const g = scene.add.graphics().setDepth(5);
-  const trunkWidth = 24;
-
-  TRUNK_X.forEach((tx) => {
-    // Sombra del tronco
-    g.fillStyle(0x010803, 0.45);
-    g.fillRect(tx - trunkWidth / 2 + 4, 0, trunkWidth, GAME_HEIGHT);
-
-    // Tronco de madera de mango cálido
-    g.fillStyle(0x4e3629, 1);
-    g.fillRect(tx - trunkWidth / 2, 0, trunkWidth, GAME_HEIGHT);
-
-    // Textura de corteza y vetas
-    g.fillStyle(0x6d4c41, 1);
-    g.fillRect(tx - trunkWidth / 2 + 3, 0, 8, GAME_HEIGHT);
-
-    g.fillStyle(0x8d6e63, 0.9);
-    g.fillRect(tx - trunkWidth / 2 + 5, 0, 3, GAME_HEIGHT);
-
-    // Nudos de la corteza y ramitas con hojas
-    g.fillStyle(0x3e2723, 1);
-    g.lineStyle(2, 0x8d6e63, 0.8);
-    for (let y = 40; y < GAME_HEIGHT; y += 80) {
-      g.fillEllipse(tx, y, trunkWidth + 4, 6);
-      g.strokeEllipse(tx, y, trunkWidth + 4, 6);
-    }
-
-    // Ramitas con hojitas verdes saliendo de los lados
-    g.fillStyle(0x2e7d32, 0.9);
-    for (let y = 90; y < GAME_HEIGHT; y += 140) {
-      g.fillTriangle(tx + 12, y, tx + 24, y - 4, tx + 20, y + 4);
-      g.fillTriangle(tx - 12, y + 60, tx - 24, y + 56, tx - 20, y + 64);
-    }
-  });
-}
-
-// --- HUD Y PANELES CRT LATERALES IDÉNTICOS AL ORIGINAL ---
-function createArcadeHUD(scene) {
-  const fontStyle = { fontFamily: 'monospace', fontSize: '13px', color: '#39ff6e' };
-  const titleStyle = { fontFamily: 'monospace', fontSize: '12px', color: '#ffe600', fontStyle: 'bold' };
-
-  // Marco izquierdo de estadísticas
-  const gL = scene.add.graphics().setDepth(25);
-  gL.fillStyle(0x021107, 0.88);
-  gL.lineStyle(2, 0x1fa347, 1);
-  gL.fillRoundedRect(16, 16, 190, 568, 8);
-  gL.strokeRoundedRect(16, 16, 190, 568, 8);
-
-  scene.add.text(111, 36, 'ESTADÍSTICAS', titleStyle).setOrigin(0.5).setDepth(26);
-  scene.add.text(28, 70, 'VIDAS:', fontStyle).setDepth(26);
-  uiTexts.lives = scene.add.text(28, 92, '❤️❤️❤️', { fontSize: '16px' }).setDepth(26);
-
-  scene.add.text(28, 135, 'MANGOS:', fontStyle).setDepth(26);
-  uiTexts.mangos = scene.add.text(28, 155, '0 🥭', { fontFamily: 'monospace', fontSize: '15px', color: '#ffe600', fontStyle: 'bold' }).setDepth(26);
-
-  scene.add.text(28, 200, 'ALTURA:', fontStyle).setDepth(26);
-  uiTexts.altitude = scene.add.text(28, 220, '0 m', { fontFamily: 'monospace', fontSize: '15px', color: '#9affb6' }).setDepth(26);
-
-  scene.add.text(28, 265, 'PUNTAJE:', fontStyle).setDepth(26);
-  uiTexts.score = scene.add.text(28, 285, '0', { fontFamily: 'monospace', fontSize: '17px', color: '#ffffff', fontStyle: 'bold' }).setDepth(26);
-
-  scene.add.text(28, 340, 'RÉCORD:', fontStyle).setDepth(26);
-  uiTexts.high = scene.add.text(28, 360, '0', { fontFamily: 'monospace', fontSize: '15px', color: '#ffe600' }).setDepth(26);
-
-  // Marco derecho de controles
-  const gR = scene.add.graphics().setDepth(25);
-  gR.fillStyle(0x021107, 0.88);
-  gR.lineStyle(2, 0x1fa347, 1);
-  gR.fillRoundedRect(594, 16, 190, 568, 8);
-  gR.strokeRoundedRect(594, 16, 190, 568, 8);
-
-  scene.add.text(689, 36, 'CONTROLES', titleStyle).setOrigin(0.5).setDepth(26);
-  const helpLines = [
-    'W / ↑ :', 'Trepar rápido',
-    '',
-    'S / ↓ :', 'Deslizarse',
-    '',
-    'A / ← :', 'Izq / Cambiar',
-    '',
-    'D / → :', 'Der / Cambiar',
-    '',
-    'P :', 'Pausa',
-    '',
-    'R :', 'Reiniciar 0',
-  ];
-  let hy = 70;
-  for (let i = 0; i < helpLines.length; i += 2) {
-    scene.add.text(606, hy, helpLines[i], { fontFamily: 'monospace', fontSize: '11px', color: '#ffe600', fontStyle: 'bold' }).setDepth(26);
-    scene.add.text(606, hy + 16, helpLines[i + 1], { fontFamily: 'monospace', fontSize: '10px', color: '#9affb6' }).setDepth(26);
-    hy += 42;
-  }
-
-  // Título superior central
-  uiTexts.titleHeader = scene.add.text(400, 24, 'CHAMITO', {
-    fontFamily: 'monospace',
-    fontSize: '20px',
-    color: '#ffe600',
-    fontStyle: 'bold',
-  }).setOrigin(0.5).setDepth(26);
-
-  // Mensaje de estado central (Inicio / Pausa / Game Over)
-  uiTexts.centerBox = scene.add.text(400, 290, '', {
-    fontFamily: 'monospace',
-    fontSize: '20px',
-    color: '#ffe600',
-    align: 'center',
-    backgroundColor: '#021107',
-    padding: { x: 20, y: 15 },
-  }).setOrigin(0.5).setDepth(40).setVisible(false);
-}
-
-function drawCRTFilter(scene) {
+function drawCRTScanlines(scene) {
   const g = scene.add.graphics().setDepth(99);
-  // Scanlines horizontales
-  g.lineStyle(1, 0x000000, 0.35);
+  g.lineStyle(1, 0x000000, 0.28);
   for (let y = 0; y < GAME_HEIGHT; y += 4) {
     g.beginPath();
     g.moveTo(0, y);
@@ -673,11 +625,11 @@ function update(time, delta) {
     justPressed.P1_1 = false;
     if (gameState === STATE_PLAYING) {
       gameState = STATE_PAUSED;
-      uiTexts.centerBox.setText('PAUSA\n\nPresiona P para seguir\nR para reiniciar').setVisible(true);
+      centerMenuText.setText('PAUSA\n\nPresiona P para seguir\nR para reiniciar').setVisible(true);
       return;
     } else if (gameState === STATE_PAUSED) {
       gameState = STATE_PLAYING;
-      uiTexts.centerBox.setVisible(false);
+      centerMenuText.setVisible(false);
       return;
     }
   }
@@ -686,13 +638,13 @@ function update(time, delta) {
 
   // Estado de Salto y Caída del Chamito (Al morir)
   if (gameState === STATE_DYING) {
-    chamito.deathVy += 24 * dt; // Gravedad
+    chamito.deathVy += 26 * dt; // Gravedad
     chamito.y += chamito.deathVy;
     chamito.x += chamito.deathVx;
-    chamito.sprite.setRotation(chamito.sprite.rotation + (chamito.deathVx > 0 ? 8 : -8) * dt);
+    chamito.sprite.setRotation(chamito.sprite.rotation + (chamito.deathVx > 0 ? 9 : -9) * dt);
     chamito.sprite.setPosition(chamito.x, chamito.y);
 
-    if (chamito.y > GAME_HEIGHT + 70) {
+    if (chamito.y > GAME_HEIGHT + 60) {
       triggerGameOver();
     }
     return;
@@ -707,11 +659,14 @@ function update(time, delta) {
     return;
   }
 
-  // --- JUEGO EN EJECUCIÓN (STATE_PLAYING) ---
+  // --- JUEGO EN EJECUCIÓN ---
   handlePlayerInput(dt);
   updateWorldProgress(dt);
+  renderDynamicBackground();
+  renderMangoTrunks();
   updateAnts(dt);
   updateMangos(dt);
+  updateFloatingTexts(dt);
   updateHUD();
 }
 
@@ -727,24 +682,27 @@ function startFreshGame() {
   // Limpiar entidades previas
   ants.forEach((a) => a.sprite.destroy());
   mangos.forEach((m) => m.sprite.destroy());
+  floatingTexts.forEach((t) => t.destroy());
   ants = [];
   mangos = [];
+  floatingTexts = [];
 
   // Reset del chamito
   chamito.trunk = 1;
   chamito.side = 1;
   chamito.x = TRUNK_X[1] + OFFSET_X;
   chamito.targetX = chamito.x;
-  chamito.y = 430;
-  chamito.targetY = 430;
+  chamito.y = 470;
+  chamito.targetY = 470;
   chamito.isDying = false;
   chamito.deathVx = 0;
   chamito.deathVy = 0;
   chamito.sprite.setTexture('tex_chamito').setRotation(0).setPosition(chamito.x, chamito.y).setAlpha(1);
 
   gameState = STATE_PLAYING;
-  uiTexts.centerBox.setVisible(false);
+  centerMenuText.setVisible(false);
   sfx.startBGM();
+  broadcastStats();
 }
 
 function handlePlayerInput(dt) {
@@ -760,14 +718,14 @@ function handlePlayerInput(dt) {
 
   // Trepar o deslizarse verticalmente
   if (held.P1_U) {
-    scrollSpeed = 3.6;
+    scrollSpeed = 3.8;
     chamito.targetY = Math.max(160, chamito.targetY - 140 * dt);
   } else if (held.P1_D) {
     scrollSpeed = 1.0;
-    chamito.targetY = Math.min(500, chamito.targetY + 180 * dt);
+    chamito.targetY = Math.min(520, chamito.targetY + 180 * dt);
   } else {
     scrollSpeed = 2.2;
-    chamito.targetY += (430 - chamito.targetY) * 0.08;
+    chamito.targetY += (470 - chamito.targetY) * 0.08;
   }
 
   // Suavizado de posición del chamito
@@ -820,12 +778,16 @@ function moveChamitoRight() {
 }
 
 function updateWorldProgress(dt) {
-  altitude += scrollSpeed * dt * 8;
-  score += Math.round(scrollSpeed * 0.6);
+  altitude += scrollSpeed * dt * 9;
+  score += Math.round(scrollSpeed * 0.7);
+
+  if (altitude > bestAltitude) {
+    bestAltitude = Math.floor(altitude);
+  }
 
   // Spawn Hormigas
   antSpawnTimer += dt;
-  const antInterval = Math.max(0.65, 1.7 - altitude * 0.0015);
+  const antInterval = Math.max(0.65, 1.8 - altitude * 0.0012);
   if (antSpawnTimer > antInterval) {
     antSpawnTimer = 0;
     spawnAnt();
@@ -833,10 +795,206 @@ function updateWorldProgress(dt) {
 
   // Spawn Mangos
   mangoSpawnTimer += dt;
-  if (mangoSpawnTimer > 1.25) {
+  if (mangoSpawnTimer > 1.2) {
     mangoSpawnTimer = 0;
     spawnMango();
   }
+}
+
+// --- RENDER DEL FONDO DINÁMICO (ZONA URBANA BARRIO -> ÁVILA -> ATMÓSFERA -> ESPACIO PROFUNDO) ---
+function renderDynamicBackground() {
+  if (!bgGraphics) return;
+  bgGraphics.clear();
+
+  const alt = altitude;
+
+  // 1. ZONA URBANA / BARRIO VENEZOLANO (0 - 300m)
+  if (alt < 300) {
+    // Cielo azul de Caracas
+    bgGraphics.fillGradientStyle(0x1e88e5, 0x1e88e5, 0x64b5f6, 0x64b5f6, 1);
+    bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Desplazamiento del patio y casas según sube el chamito
+    const offsetY = alt * 1.8;
+
+    // Suelo del patio con grama y tierra al inicio
+    if (offsetY < GAME_HEIGHT) {
+      bgGraphics.fillStyle(0x33691e, 1);
+      bgGraphics.fillRect(0, GAME_HEIGHT - offsetY + 280, GAME_WIDTH, 400);
+      bgGraphics.fillStyle(0x4e342e, 1);
+      bgGraphics.fillRect(0, GAME_HEIGHT - offsetY + 330, GAME_WIDTH, 400);
+    }
+
+    // Casas del barrio de ladrillos rojos sin frisar
+    const houseY = GAME_HEIGHT - offsetY + 100;
+    if (houseY < GAME_HEIGHT + 200 && houseY > -200) {
+      // Casa izquierda
+      bgGraphics.fillStyle(0xb73a1e, 1); // Ladrillo rojo
+      bgGraphics.fillRect(10, houseY, 150, 190);
+      // Techo de zinc galvanizado
+      bgGraphics.fillStyle(0x90a4ae, 1);
+      bgGraphics.fillRect(5, houseY - 10, 165, 12);
+      // Tanque azul cilíndrico en el techo
+      bgGraphics.fillStyle(0x0277bd, 1);
+      bgGraphics.fillRoundedRect(40, houseY - 42, 36, 32, 4);
+      bgGraphics.fillStyle(0x01579b, 1);
+      bgGraphics.fillRect(36, houseY - 44, 44, 5); // Tapa
+
+      // Casa derecha con platabanda y doña en la ventana
+      bgGraphics.fillStyle(0xc0392b, 1);
+      bgGraphics.fillRect(320, houseY + 30, 150, 200);
+      bgGraphics.fillStyle(0x78909c, 1);
+      bgGraphics.fillRect(315, houseY + 20, 160, 12);
+      // Tanque azul derecho
+      bgGraphics.fillStyle(0x0277bd, 1);
+      bgGraphics.fillRoundedRect(350, houseY - 12, 36, 32, 4);
+
+      // Ventana con la doña venezolana asomada con sus rulos
+      bgGraphics.fillStyle(0x212121, 1);
+      bgGraphics.fillRect(50, houseY + 45, 34, 38);
+      // Rejas
+      bgGraphics.lineStyle(1.5, 0xffffff, 0.7);
+      bgGraphics.lineBetween(58, houseY + 45, 58, houseY + 83);
+      bgGraphics.lineBetween(66, houseY + 45, 66, houseY + 83);
+      bgGraphics.lineBetween(74, houseY + 45, 74, houseY + 83);
+      // Cara de la doña
+      bgGraphics.fillStyle(0xd7a17c, 1);
+      bgGraphics.fillCircle(67, houseY + 62, 7);
+      // Rulos rosados en el cabello
+      bgGraphics.fillStyle(0xf06292, 1);
+      bgGraphics.fillCircle(62, houseY + 56, 3);
+      bgGraphics.fillCircle(67, houseY + 54, 3);
+      bgGraphics.fillCircle(72, houseY + 56, 3);
+      // Bata de andar por casa
+      bgGraphics.fillStyle(0xffd54f, 1);
+      bgGraphics.fillRect(60, houseY + 69, 14, 14);
+
+      // Cables de luz que cruzan
+      bgGraphics.lineStyle(1.2, 0x212121, 0.6);
+      bgGraphics.lineBetween(0, houseY + 10, GAME_WIDTH, houseY + 50);
+      bgGraphics.lineBetween(0, houseY + 25, GAME_WIDTH, houseY + 65);
+    }
+  }
+  // 2. ZONA EL ÁVILA Y CIELO CARAQUEÑO (300 - 700m)
+  else if (alt < 700) {
+    const p = (alt - 300) / 400;
+    // Transición de azul celeste a violeta atardecer
+    bgGraphics.fillGradientStyle(0x1a237e, 0x1a237e, 0xd84315, 0xf57c00, 1);
+    bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Silueta imponente del Ávila
+    bgGraphics.fillStyle(0x0e3d1c, 0.9);
+    bgGraphics.beginPath();
+    bgGraphics.moveTo(0, 480);
+    bgGraphics.lineTo(120, 360);
+    bgGraphics.lineTo(260, 410);
+    bgGraphics.lineTo(380, 320);
+    bgGraphics.lineTo(480, 370);
+    bgGraphics.lineTo(480, 640);
+    bgGraphics.lineTo(0, 640);
+    bgGraphics.closePath();
+    bgGraphics.fillPath();
+
+    // Nubes flotantes
+    bgGraphics.fillStyle(0xffffff, 0.4);
+    bgGraphics.fillCircle(90, 200, 40);
+    bgGraphics.fillCircle(130, 200, 50);
+    bgGraphics.fillCircle(170, 200, 35);
+  }
+  // 3. ZONA ATMÓSFERA Y SATÉLITE SIMÓN BOLÍVAR (700 - 1200m)
+  else if (alt < 1200) {
+    bgGraphics.fillGradientStyle(0x020813, 0x020813, 0x0d2040, 0x0d2040, 1);
+    bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Estrellas titilantes
+    bgGraphics.fillStyle(0xffffff, 0.9);
+    for (let i = 0; i < 30; i++) {
+      const sx = ((i * 73) % GAME_WIDTH);
+      const sy = (((i * 97) + alt * 0.5) % GAME_HEIGHT);
+      bgGraphics.fillCircle(sx, sy, (i % 3 === 0 ? 2 : 1.2));
+    }
+
+    // Curvatura de la Tierra abajo
+    bgGraphics.fillStyle(0x1565c0, 0.6);
+    bgGraphics.beginPath();
+    bgGraphics.arc(240, 950, 400, Math.PI, 0, false);
+    bgGraphics.fillPath();
+
+    // Satélite Simón Bolívar orbitando
+    const satY = ((alt * 0.4) % 500) + 70;
+    bgGraphics.fillStyle(0xffd700, 1); // Cuerpo central dorado
+    bgGraphics.fillRect(360, satY, 20, 16);
+    // Paneles solares azules
+    bgGraphics.fillStyle(0x0288d1, 1);
+    bgGraphics.fillRect(330, satY + 4, 25, 8);
+    bgGraphics.fillRect(385, satY + 4, 25, 8);
+  }
+  // 4. ZONA ESPACIO PROFUNDO Y AGUJERO NEGRO (1200m+)
+  else {
+    bgGraphics.fillGradientStyle(0x000000, 0x000000, 0x120422, 0x120422, 1);
+    bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // Nebulosa cósmica púrpura/magenta
+    bgGraphics.fillStyle(0x8e24aa, 0.25);
+    bgGraphics.fillCircle(160, 280, 140);
+    bgGraphics.fillStyle(0x00bcd4, 0.2);
+    bgGraphics.fillCircle(320, 360, 120);
+
+    // Estrellas
+    bgGraphics.fillStyle(0xffffff, 0.95);
+    for (let i = 0; i < 45; i++) {
+      const sx = ((i * 67) % GAME_WIDTH);
+      const sy = (((i * 89) + alt * 0.4) % GAME_HEIGHT);
+      bgGraphics.fillCircle(sx, sy, (i % 4 === 0 ? 2.5 : 1.2));
+    }
+
+    // Agujero negro cósmico con disco de acreción
+    bgGraphics.lineStyle(4, 0xffa000, 0.8);
+    bgGraphics.strokeEllipse(240, 200, 70, 24);
+    bgGraphics.lineStyle(2, 0xffffff, 0.9);
+    bgGraphics.strokeEllipse(240, 200, 80, 28);
+    bgGraphics.fillStyle(0x000000, 1);
+    bgGraphics.fillCircle(240, 200, 22);
+  }
+}
+
+// --- RENDER DE LOS 4 TRONCOS DE LA MATA DE MANGO ---
+function renderMangoTrunks() {
+  if (!treeGraphics) return;
+  treeGraphics.clear();
+
+  const trunkWidth = 26;
+
+  TRUNK_X.forEach((tx) => {
+    // Sombra del tronco
+    treeGraphics.fillStyle(0x020a04, 0.45);
+    treeGraphics.fillRect(tx - trunkWidth / 2 + 5, 0, trunkWidth, GAME_HEIGHT);
+
+    // Madera de mango cálida
+    treeGraphics.fillStyle(0x4e3629, 1);
+    treeGraphics.fillRect(tx - trunkWidth / 2, 0, trunkWidth, GAME_HEIGHT);
+
+    // Vetas de madera
+    treeGraphics.fillStyle(0x6d4c41, 1);
+    treeGraphics.fillRect(tx - trunkWidth / 2 + 4, 0, 9, GAME_HEIGHT);
+    treeGraphics.fillStyle(0x8d6e63, 0.85);
+    treeGraphics.fillRect(tx - trunkWidth / 2 + 6, 0, 3, GAME_HEIGHT);
+
+    // Nudos y ramitas de mango
+    treeGraphics.fillStyle(0x3e2723, 1);
+    treeGraphics.lineStyle(2, 0x8d6e63, 0.8);
+    for (let y = 30; y < GAME_HEIGHT; y += 85) {
+      treeGraphics.fillEllipse(tx, y, trunkWidth + 4, 6);
+      treeGraphics.strokeEllipse(tx, y, trunkWidth + 4, 6);
+    }
+
+    // Hojitas verdes de mango saliendo a los lados
+    treeGraphics.fillStyle(0x2e7d32, 0.9);
+    for (let y = 70; y < GAME_HEIGHT; y += 130) {
+      treeGraphics.fillTriangle(tx + 13, y, tx + 27, y - 5, tx + 22, y + 5);
+      treeGraphics.fillTriangle(tx - 13, y + 50, tx - 27, y + 45, tx - 22, y + 55);
+    }
+  });
 }
 
 function spawnAnt() {
@@ -845,7 +1003,7 @@ function spawnAnt() {
   const side = Math.random() < 0.5 ? -1 : 1;
   const r = Math.random();
   let tex = 'tex_ant_red';
-  let speed = 120 + altitude * 0.15;
+  let speed = 130 + altitude * 0.16;
 
   if (altitude > 150 && r > 0.65) {
     tex = 'tex_ant_black';
@@ -855,7 +1013,7 @@ function spawnAnt() {
     speed *= 1.7;
   }
 
-  const sprite = currentScene.add.sprite(TRUNK_X[tIdx] + side * (OFFSET_X - 5), -20, tex).setDepth(15);
+  const sprite = currentScene.add.sprite(TRUNK_X[tIdx] + side * (OFFSET_X - 4), -25, tex).setDepth(15);
   ants.push({ tIdx, side, speed, sprite });
 }
 
@@ -866,7 +1024,7 @@ function spawnMango() {
   const isGold = Math.random() < 0.08 && superTimer <= 0;
   const tex = isGold ? 'tex_mango_gold' : 'tex_mango';
 
-  const sprite = currentScene.add.sprite(TRUNK_X[tIdx] + side * OFFSET_X, -20, tex).setDepth(12);
+  const sprite = currentScene.add.sprite(TRUNK_X[tIdx] + side * OFFSET_X, -25, tex).setDepth(12);
   mangos.push({ tIdx, side, isGold, sprite });
 }
 
@@ -879,13 +1037,15 @@ function updateAnts(dt) {
     const dy = Math.abs(a.sprite.y - chamito.y);
     const dx = Math.abs(a.sprite.x - chamito.x);
 
-    if (a.tIdx === chamito.trunk && a.side === chamito.side && dy < 28 && dx < 24) {
+    if (a.tIdx === chamito.trunk && a.side === chamito.side && dy < 30 && dx < 24) {
       if (superTimer > 0) {
-        // Super Chamito aplasta hormiga
+        // Super Chamito aplasta la hormiga
         sfx.smash();
         score += 50;
+        addFloatingText('+50', a.sprite.x, a.sprite.y, '#ffd54f');
         a.sprite.destroy();
         ants.splice(i, 1);
+        broadcastStats();
         continue;
       } else if (invulTimer <= 0) {
         sfx.hurt();
@@ -899,7 +1059,7 @@ function updateAnts(dt) {
       }
     }
 
-    if (a.sprite.y > GAME_HEIGHT + 30) {
+    if (a.sprite.y > GAME_HEIGHT + 35) {
       a.sprite.destroy();
       ants.splice(i, 1);
     }
@@ -909,29 +1069,56 @@ function updateAnts(dt) {
 function updateMangos(dt) {
   for (let i = mangos.length - 1; i >= 0; i--) {
     const m = mangos[i];
-    m.sprite.y += scrollSpeed * 45 * dt;
+    m.sprite.y += scrollSpeed * 48 * dt;
 
     const dy = Math.abs(m.sprite.y - chamito.y);
     const dx = Math.abs(m.sprite.x - chamito.x);
 
-    if (m.tIdx === chamito.trunk && m.side === chamito.side && dy < 30 && dx < 24) {
+    if (m.tIdx === chamito.trunk && m.side === chamito.side && dy < 32 && dx < 24) {
       mangosCount++;
       if (m.isGold) {
         sfx.golden();
         superTimer = 7.0;
         score += 150;
+        addFloatingText('🌟 SUPER MANGO! +150', chamito.x, chamito.y - 30, '#ffd700');
       } else {
         sfx.munch();
         score += 20;
+        addFloatingText('+20', m.sprite.x, m.sprite.y, '#81c784');
       }
       m.sprite.destroy();
       mangos.splice(i, 1);
+      broadcastStats();
       continue;
     }
 
-    if (m.sprite.y > GAME_HEIGHT + 30) {
+    if (m.sprite.y > GAME_HEIGHT + 35) {
       m.sprite.destroy();
       mangos.splice(i, 1);
+    }
+  }
+}
+
+function addFloatingText(text, x, y, color = '#ffffff') {
+  if (!currentScene) return;
+  const t = currentScene.add.text(x, y, text, {
+    fontFamily: 'monospace',
+    fontSize: '13px',
+    color: color,
+    fontStyle: 'bold',
+  }).setOrigin(0.5).setDepth(45);
+  floatingTexts.push({ textObj: t, life: 1.0 });
+}
+
+function updateFloatingTexts(dt) {
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const ft = floatingTexts[i];
+    ft.textObj.y -= 35 * dt;
+    ft.life -= dt * 1.5;
+    ft.textObj.setAlpha(Math.max(0, ft.life));
+    if (ft.life <= 0) {
+      ft.textObj.destroy();
+      floatingTexts.splice(i, 1);
     }
   }
 }
@@ -955,8 +1142,14 @@ function triggerGameOver() {
     highScore = score;
     getStorage().set('chamito_high_score', highScore);
   }
+  if (Math.floor(altitude) > bestAltitude) {
+    bestAltitude = Math.floor(altitude);
+    getStorage().set('chamito_best_altitude', bestAltitude);
+  }
 
-  uiTexts.centerBox.setText(
+  broadcastStats();
+
+  centerMenuText.setText(
     `¡FIN DEL JUEGO!\n\nPUNTAJE: ${score}\nMANGOS: ${mangosCount}\nALTURA: ${Math.floor(altitude)}m\n\nPresiona ENTER o R\npara jugar de nuevo`
   ).setVisible(true);
 }
@@ -964,17 +1157,32 @@ function triggerGameOver() {
 function updateHUD() {
   let hearts = '';
   for (let i = 0; i < 3; i++) hearts += i < lives ? '❤️ ' : '🖤 ';
-  uiTexts.lives.setText(hearts);
-  uiTexts.mangos.setText(`${mangosCount} 🥭`);
-  uiTexts.altitude.setText(`${Math.floor(altitude)} m`);
-  uiTexts.score.setText(`${score}`);
-  uiTexts.high.setText(`${highScore}`);
+  hudTexts.lives.setText(hearts);
+  hudTexts.mangos.setText(`${mangosCount} 🥭`);
+  hudTexts.altitude.setText(`${Math.floor(altitude)}m`);
+  hudTexts.score.setText(`${score}`);
 }
 
 function showMenuUI(visible) {
   if (visible) {
-    uiTexts.centerBox.setText(
+    centerMenuText.setText(
       'CHAMITO\n★ LA MATA DE MANGO ★\n\nEsquiva las hormigas\ny agarra los mangos\n\nPresiona ENTER o W\npara jugar'
     ).setVisible(true);
+  }
+}
+
+// Sincronizar estadísticas en vivo con las tarjetas HTML externas
+function broadcastStats() {
+  if (typeof window !== 'undefined') {
+    window.chamitoStats = {
+      score: score,
+      highScore: highScore,
+      altitude: Math.floor(altitude),
+      bestAltitude: bestAltitude,
+      mangos: mangosCount,
+    };
+    if (window.updateHtmlCards) {
+      window.updateHtmlCards();
+    }
   }
 }
