@@ -438,33 +438,47 @@ function generateProceduralTextures(scene) {
   gC1.fillCircle(27, 8, 3.8);
   gC1.fillRect(28, 6, 3, 4.5); // Dedos agarrando
 
-  // Cabeza del chamito
-  gC1.fillStyle(0xd7a17c, 1);
-  gC1.fillCircle(17, 10, 7.5);
-  // Cabello negro peinado hacia adelante con mechón
-  gC1.fillStyle(0x1f1f1f, 1);
-  gC1.fillCircle(16, 6, 7);
-  gC1.fillCircle(20, 7, 5.5);
-  gC1.fillCircle(12, 8, 5);
-  gC1.fillTriangle(19, 4, 24, 2, 21, 7);
-
+  // Cabeza del chamito (Cara normal de niño venezolano, piel limpia, CERO máscara)
+  // 1. Base de la cabeza y cuello
+  gC1.fillStyle(0xd7a17c, 1); // Piel mestiza venezolana
+  gC1.fillCircle(18, 11, 7.5);
   // Orejita
-  gC1.fillStyle(0xd7a17c, 1);
-  gC1.fillCircle(9, 10, 2.5);
+  gC1.fillCircle(11, 11, 2.5);
+  gC1.fillStyle(0xbe8b68, 1);
+  gC1.fillCircle(11, 11, 1.2);
 
-  // Ojo alegre mirando hacia arriba a los mangos
+  // 2. Cabello negro natural (ÚNICAMENTE en coronilla y atrás, cara 100% despejada y limpia)
+  gC1.fillStyle(0x212121, 1);
+  gC1.fillEllipse(17, 5.5, 7.5, 4); // Parte superior del cráneo
+  gC1.fillRoundedRect(11, 5, 5, 6, 2); // Nuca / parte trasera
+  gC1.fillTriangle(18, 4, 23, 3, 20, 6.8); // Pequeño mechón en la frente alta
+
+  // 3. Rasgos faciales normales y nítidos sobre la piel limpia
+  // Cejita
+  gC1.lineStyle(1.2, 0x4a2e18, 1);
+  gC1.lineBetween(17.5, 8.2, 20.5, 8.0);
+
+  // Ojo alegre normal (esclerótica blanca + iris oscuro + brillo)
   gC1.fillStyle(0xffffff, 1);
-  gC1.fillCircle(19, 9, 2.5);
-  gC1.fillStyle(0x111111, 1);
-  gC1.fillCircle(20, 8.5, 1.4);
+  gC1.fillEllipse(19.2, 10.5, 2.8, 2.2);
+  gC1.fillStyle(0x1a0f0a, 1);
+  gC1.fillCircle(19.8, 10.5, 1.3);
   gC1.fillStyle(0xffffff, 1);
-  gC1.fillRect(20, 8, 1, 1);
+  gC1.fillRect(20, 9.8, 1, 1);
+
+  // Naricita sutil
+  gC1.fillStyle(0xc28763, 1);
+  gC1.fillCircle(24, 11.5, 1.2);
 
   // Sonrisa de trepar
   gC1.lineStyle(1.4, 0x5d4037, 1);
   gC1.beginPath();
-  gC1.arc(19, 13, 2.5, 0.2, Math.PI * 0.9, false);
+  gC1.arc(19, 14, 2.4, 0.15, Math.PI * 0.85, false);
   gC1.strokePath();
+
+  // Mejilla sonrosada
+  gC1.fillStyle(0xe57373, 0.4);
+  gC1.fillCircle(16.5, 13, 2);
 
   gC1.generateTexture('tex_chamito_climb1', 38, 46);
   gC1.generateTexture('tex_chamito', 38, 46); // Compatible con la textura base
@@ -516,32 +530,47 @@ function generateProceduralTextures(scene) {
   gC2.fillCircle(25, 23, 3.8);
   gC2.fillRect(26, 21, 3, 4.5);
 
-  // Cabeza del chamito (sube 1px con el impulso)
+  // Cabeza del chamito (Cara normal, sube 1px con el impulso, piel limpia)
+  // 1. Base de la cabeza y cuello
   gC2.fillStyle(0xd7a17c, 1);
-  gC2.fillCircle(17, 9, 7.5);
-  gC2.fillStyle(0x1f1f1f, 1);
-  gC2.fillCircle(16, 5, 7);
-  gC2.fillCircle(20, 6, 5.5);
-  gC2.fillCircle(12, 7, 5);
-  gC2.fillTriangle(19, 3, 24, 1, 21, 6);
-
+  gC2.fillCircle(18, 10, 7.5);
   // Orejita
-  gC2.fillStyle(0xd7a17c, 1);
-  gC2.fillCircle(9, 9, 2.5);
+  gC2.fillCircle(11, 10, 2.5);
+  gC2.fillStyle(0xbe8b68, 1);
+  gC2.fillCircle(11, 10, 1.2);
 
-  // Ojo alegre
+  // 2. Cabello negro natural (coronilla y parte trasera, cara despejada)
+  gC2.fillStyle(0x212121, 1);
+  gC2.fillEllipse(17, 4.5, 7.5, 4);
+  gC2.fillRoundedRect(11, 4, 5, 6, 2);
+  gC2.fillTriangle(18, 3, 23, 2, 20, 5.8);
+
+  // 3. Rasgos faciales normales y nítidos
+  // Cejita
+  gC2.lineStyle(1.2, 0x4a2e18, 1);
+  gC2.lineBetween(17.5, 7.2, 20.5, 7.0);
+
+  // Ojo alegre normal
   gC2.fillStyle(0xffffff, 1);
-  gC2.fillCircle(19, 8, 2.5);
-  gC2.fillStyle(0x111111, 1);
-  gC2.fillCircle(20, 7.5, 1.4);
+  gC2.fillEllipse(19.2, 9.5, 2.8, 2.2);
+  gC2.fillStyle(0x1a0f0a, 1);
+  gC2.fillCircle(19.8, 9.5, 1.3);
   gC2.fillStyle(0xffffff, 1);
-  gC2.fillRect(20, 7, 1, 1);
+  gC2.fillRect(20, 8.8, 1, 1);
+
+  // Naricita sutil
+  gC2.fillStyle(0xc28763, 1);
+  gC2.fillCircle(24, 10.5, 1.2);
 
   // Sonrisa
   gC2.lineStyle(1.4, 0x5d4037, 1);
   gC2.beginPath();
-  gC2.arc(19, 12, 2.5, 0.2, Math.PI * 0.9, false);
+  gC2.arc(19, 13, 2.4, 0.15, Math.PI * 0.85, false);
   gC2.strokePath();
+
+  // Mejilla sonrosada
+  gC2.fillStyle(0xe57373, 0.4);
+  gC2.fillCircle(16.5, 12, 2);
 
   gC2.generateTexture('tex_chamito_climb2', 38, 46);
   gC2.destroy();
@@ -565,15 +594,15 @@ function generateProceduralTextures(scene) {
   gCH.fillCircle(28, 16, 4);
   gCH.fillCircle(7, 16, 4);
 
-  // Cabeza
+  // Cabeza (Cara normal despejada)
   gCH.fillStyle(0xd7a17c, 1);
-  gCH.fillCircle(18, 10, 8);
-  gCH.fillStyle(0x1f1f1f, 1);
-  gCH.fillCircle(17, 6, 7.5);
-  gCH.fillCircle(21, 7, 5.5);
-  gCH.fillCircle(13, 8, 5.5);
+  gCH.fillCircle(18, 10, 7.5);
+  // Cabello solo en coronilla y atrás
+  gCH.fillStyle(0x212121, 1);
+  gCH.fillEllipse(17, 4.5, 7.5, 4);
+  gCH.fillRoundedRect(11, 4, 5, 6, 2);
 
-  // Ojos X X
+  // Ojos X X sobre piel limpia
   gCH.lineStyle(1.8, 0x000000, 1);
   gCH.beginPath();
   gCH.moveTo(14, 7); gCH.lineTo(18, 11);
