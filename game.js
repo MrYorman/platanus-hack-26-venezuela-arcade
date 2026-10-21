@@ -765,6 +765,43 @@ function generateProceduralTextures(scene) {
   gAF.generateTexture('tex_ant_fire', 18, 26);
   gAF.destroy();
 
+  // 7B. BACHACO GIGANTE / HORMIGA CULONA (Enemigo grande que baja por los troncos)
+  const gAG = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Abdomen grande rayado
+  gAG.fillStyle(0x7f0000, 1);
+  gAG.fillEllipse(11, 8, 8.5, 11);
+  gAG.lineStyle(1.4, 0xb71c1c, 0.9);
+  gAG.lineBetween(6, 6, 16, 6);
+  gAG.lineBetween(5, 9, 17, 9);
+  gAG.lineBetween(6, 12, 16, 12);
+  // Tórax musculoso
+  gAG.fillStyle(0x4a0000, 1);
+  gAG.fillEllipse(11, 17, 6, 7);
+  // Cabeza con mandíbulas feroces
+  gAG.fillStyle(0xb71c1c, 1);
+  gAG.fillCircle(11, 24, 6);
+  // Ojos brillantes amarillos
+  gAG.fillStyle(0xffff00, 1);
+  gAG.fillCircle(9, 23.5, 1.6);
+  gAG.fillCircle(13, 23.5, 1.6);
+  gAG.fillStyle(0x000000, 1);
+  gAG.fillCircle(9, 24, 0.9);
+  gAG.fillCircle(13, 24, 0.9);
+  // Mandíbulas tenaza filosas
+  gAG.lineStyle(1.8, 0xffffff, 1);
+  gAG.lineBetween(9, 27, 7, 31);
+  gAG.lineBetween(13, 27, 15, 31);
+  // 6 Patas largas que se aferran firmes al tronco (100% sobre la madera)
+  gAG.lineStyle(2, 0x8e0000, 1);
+  gAG.lineBetween(11, 20, 2, 18);
+  gAG.lineBetween(11, 20, 20, 18);
+  gAG.lineBetween(11, 16, 1, 16);
+  gAG.lineBetween(11, 16, 21, 16);
+  gAG.lineBetween(11, 11, 2, 9);
+  gAG.lineBetween(11, 11, 20, 9);
+  gAG.generateTexture('tex_ant_giant', 22, 33);
+  gAG.destroy();
+
   // 8. PLATILLO VOLADOR ALIENÍGENA (Enemigo en el Espacio)
   const gU1 = scene.make.graphics({ x: 0, y: 0, add: false });
   // Haz de energía inferior
@@ -810,6 +847,32 @@ function generateProceduralTextures(scene) {
   gU2.fillTriangle(17, 20, 21, 20, 19, 25);
   gU2.generateTexture('tex_ufo_fighter', 26, 26);
   gU2.destroy();
+
+  // 9B. NAVE NODRIZA ALIENÍGENA (Enemigo espacial imponente)
+  const gU3 = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Haz de rayos tractor violeta
+  gU3.fillStyle(0xe040fb, 0.35);
+  gU3.fillTriangle(14, 16, 3, 27, 25, 27);
+  // Casco acorazado
+  gU3.fillStyle(0x7b1fa2, 1);
+  gU3.fillEllipse(14, 14, 26, 11);
+  gU3.fillStyle(0xba68c8, 1);
+  gU3.fillEllipse(14, 14, 20, 7);
+  // Cúpula biocósmica
+  gU3.fillStyle(0x18ffff, 0.85);
+  gU3.fillCircle(14, 9, 6.5);
+  // Núcleo cibernético alien
+  gU3.fillStyle(0x76ff03, 1);
+  gU3.fillCircle(14, 9, 3.5);
+  gU3.fillStyle(0x000000, 1);
+  gU3.fillCircle(12.5, 8.5, 1.2);
+  gU3.fillCircle(15.5, 8.5, 1.2);
+  // Luces de propulsión
+  gU3.fillStyle(0xff1744, 1); gU3.fillCircle(6, 16, 1.5);
+  gU3.fillStyle(0xffff00, 1); gU3.fillCircle(14, 17, 1.8);
+  gU3.fillStyle(0xff1744, 1); gU3.fillCircle(22, 16, 1.5);
+  gU3.generateTexture('tex_ufo_cruiser', 28, 28);
+  gU3.destroy();
 }
 
 // --- HUD SUPERIOR ELEGANTE Y LEGIBLE ---
@@ -1184,10 +1247,13 @@ function updateWorldProgress(dt) {
     bestAltitude = Math.floor(altitude);
   }
 
-  // Spawn de Oleadas de Enemigos (1 a 3 bajando al azar por palos diferentes al estilo Mono de Movilnet)
+  // Spawn de Oleadas de Enemigos por los 8 carriles (variando entre 1, 2, 4, 6 y 8)
   antSpawnTimer += dt;
   const isSpace = altitude >= 850;
-  const waveInterval = isSpace ? Math.max(1.1, 2.3 - (altitude - 850) * 0.0005) : Math.max(1.3, 2.8 - altitude * 0.0008);
+  // Intervalo dinámico de oleadas: entre 1.05s y 1.70s para mantener la pantalla llena y variada
+  const waveInterval = isSpace
+    ? Math.max(0.95, 1.55 - (altitude - 850) * 0.0004)
+    : Math.max(1.05, 1.75 - altitude * 0.0008);
   if (antSpawnTimer > waveInterval) {
     antSpawnTimer = 0;
     spawnAnt();
@@ -1724,65 +1790,88 @@ function spawnAnt() {
   if (!currentScene) return;
   const isSpaceShip = altitude >= 850;
 
-  // Dinámica clásica del Mono de Movilnet: 1 a 3 enemigos bajando a la vez por distintos troncos
-  let count = 1;
-  const rCount = Math.random();
-  if (altitude < 200) {
-    count = rCount < 0.28 ? 2 : 1;
-  } else if (altitude < 650) {
-    count = rCount < 0.65 ? 2 : 1;
-  } else if (altitude < 1400) {
-    count = rCount < 0.25 ? 1 : (rCount < 0.8 ? 2 : 3);
+  // 8 Carriles posibles (4 matas de mango × 2 lados cada una: izquierda y derecha)
+  const allLanes = [
+    { tIdx: 0, side: -1 }, { tIdx: 0, side: 1 },
+    { tIdx: 1, side: -1 }, { tIdx: 1, side: 1 },
+    { tIdx: 2, side: -1 }, { tIdx: 2, side: 1 },
+    { tIdx: 3, side: -1 }, { tIdx: 3, side: 1 },
+  ];
+
+  // Variación dinámica de oleadas: pueden bajar 1, 2, 4, 6 o hasta 7-8 enemigos por ráfagas
+  let count = 2;
+  const r = Math.random();
+  if (altitude < 80) {
+    count = r < 0.4 ? 1 : (r < 0.85 ? 2 : 3);
+  } else if (altitude < 300) {
+    if (r < 0.25) count = 1 + Math.floor(Math.random() * 2); // 1 o 2 (respiro)
+    else if (r < 0.70) count = 3 + Math.floor(Math.random() * 2); // 3 o 4
+    else count = 5 + Math.floor(Math.random() * 2); // 5 o 6 (enjambre)
   } else {
-    count = rCount < 0.4 ? 2 : 3;
+    // A alturas mayores: oleadas dinámicas con momentos de gran enjambre
+    if (r < 0.18) count = 1 + Math.floor(Math.random() * 2); // 1 o 2 (respiro)
+    else if (r < 0.55) count = 3 + Math.floor(Math.random() * 2); // 3 o 4 (estándar)
+    else if (r < 0.88) count = 5 + Math.floor(Math.random() * 2); // 5 o 6 (enjambre bravo)
+    else count = 7; // 7 carriles ocupados, dejando 1 vía libre de escape
   }
 
-  // Mezclar troncos para seleccionar 'count' palos distintos
-  // Garantiza que SIEMPRE quede al menos 1 o 2 troncos libres para que el jugador pueda esquivar
-  const trunksPool = [0, 1, 2, 3];
-  for (let i = trunksPool.length - 1; i > 0; i--) {
+  // Mezclar los 8 carriles al azar
+  for (let i = allLanes.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [trunksPool[i], trunksPool[j]] = [trunksPool[j], trunksPool[i]];
+    [allLanes[i], allLanes[j]] = [allLanes[j], allLanes[i]];
   }
-  const selectedTrunks = trunksPool.slice(0, count);
+  const selectedLanes = allLanes.slice(0, count);
 
-  selectedTrunks.forEach((tIdx, idx) => {
-    const side = Math.random() < 0.5 ? -1 : 1;
+  // La velocidad base escala fuertemente según la altitud recorrida (¡mientras más arriba, más rápido bajan!)
+  // Y es constante y autónoma: ¡NUNCA se pone lenta cuando el jugador para de trepar!
+  const baseSpeed = 135 + Math.min(320, altitude * 0.22);
+
+  selectedLanes.forEach((lane, idx) => {
+    const { tIdx, side } = lane;
     const rType = Math.random();
 
-    // La velocidad base escala fuertemente según los metros subidos: ¡mientras más arriba, más rápido bajan!
-    let speed = 75 + (altitude * 0.11);
-
+    let speed = baseSpeed;
     let tex;
+    let isGiant = false;
+
     if (!isSpaceShip) {
-      // EN LA TIERRA: HORMIGAS DEL PATIO Y LA MONTAÑA
-      tex = 'tex_ant_red';
-      if (altitude > 180 && rType > 0.6) {
+      if (rType < 0.38) {
+        tex = 'tex_ant_red';
+      } else if (rType < 0.65) {
         tex = 'tex_ant_black';
-        speed *= 1.25;
-      } else if (altitude > 400 && rType < 0.35) {
+        speed *= 1.2;
+      } else if (rType < 0.85) {
         tex = 'tex_ant_fire';
-        speed *= 1.45;
+        speed *= 1.4;
+      } else {
+        // Hormiga grande / Bachaco bravo que baja por el camino
+        tex = 'tex_ant_giant';
+        speed *= 1.1;
+        isGiant = true;
       }
     } else {
-      // EN EL ESPACIO: NAVES EXTRATERRESTRES (OVNIS)
-      if (rType < 0.55) {
+      if (rType < 0.45) {
         tex = 'tex_ufo_scout';
         speed *= 1.35;
-      } else {
+      } else if (rType < 0.75) {
         tex = 'tex_ufo_fighter';
         speed *= 1.6;
+      } else {
+        tex = 'tex_ufo_cruiser';
+        speed *= 1.25;
+        isGiant = true;
       }
     }
 
-    // Variación natural de velocidad
-    speed *= (0.92 + Math.random() * 0.18);
+    // Variación sutil de velocidad individual
+    speed *= (0.94 + Math.random() * 0.14);
 
-    const enemyX = TRUNK_X[tIdx] + side * (isSpaceShip ? 8 : 5);
-    // Escalonar verticalmente para que no caigan en bloque idéntico
-    const spawnY = -28 - (idx * 22);
+    const enemyX = TRUNK_X[tIdx] + side * (isSpaceShip ? 8 : (isGiant ? 4 : 5));
+    // Escalonamiento vertical inteligente: crea cascadas zigzagueantes para que el jugador pueda maniobrar
+    const staggerY = (idx * 26) + Math.floor(Math.random() * 20);
+    const spawnY = -32 - staggerY;
     const sprite = currentScene.add.sprite(enemyX, spawnY, tex).setDepth(15);
-    ants.push({ tIdx, side, speed, isSpaceShip, sprite });
+    ants.push({ tIdx, side, speed, isSpaceShip, isGiant, sprite });
   });
 }
 
@@ -1794,31 +1883,34 @@ function spawnMango() {
   const isArepa = Math.random() < 0.12 && superTimer <= 0;
   const tex = isArepa ? 'tex_arepa' : 'tex_mango';
 
+  // Velocidad de caída autónoma según la altitud
+  const speed = 105 + Math.min(220, altitude * 0.14);
   const sprite = currentScene.add.sprite(TRUNK_X[tIdx] + side * OFFSET_X, -28, tex).setDepth(12);
-  mangos.push({ tIdx, side, isArepa, sprite });
+  mangos.push({ tIdx, side, isArepa, speed, sprite });
 }
 
 function updateAnts(dt) {
   for (let i = ants.length - 1; i >= 0; i--) {
     const a = ants[i];
-    // Factor de aceleración según altura del chamito: mientras más arriba trepa, más rápido bajan
-    const playerHeightFactor = Math.max(0.65, (550 - chamito.y) / 260);
-    // Impulso relativo al trepar (W / ↑): al subir con ganas, los enemigos se precipitan rápido hacia él
-    const climbImpact = scrollSpeed * 45;
-    const totalFallSpeed = (a.speed * playerHeightFactor) + climbImpact;
+    // Velocidad de caída autónoma: NO se frena cuando el chamito para de trepar
+    // Solo se suma un pequeño delta relativo si el chamito trepa activamente hacia arriba (W / ↑)
+    const climbRelative = held.P1_U ? 35 : (held.P1_D ? -20 : 0);
+    const fallSpeed = a.speed + climbRelative;
 
-    a.sprite.y += totalFallSpeed * dt;
+    a.sprite.y += fallSpeed * dt;
 
     // Colisión con el chamito
     const dy = Math.abs(a.sprite.y - chamito.y);
-    const dx = Math.abs(a.sprite.x - chamito.x);
 
-    if (a.tIdx === chamito.trunk && a.side === chamito.side && dy < 30 && dx < 24) {
+    if (a.tIdx === chamito.trunk && a.side === chamito.side && dy < (a.isGiant ? 34 : 28)) {
       if (superTimer > 0) {
         sfx.smash();
-        score += 50;
-        const smashPhrases = ['🫓 ¡TOSTADA! +50', '🔥 ¡BUDARE POWER! +50', '💥 ¡PODER CRIOLLO! +50'];
-        const msg = a.isSpaceShip ? '💥 ¡OVNI TOSTADO! +50' : smashPhrases[Math.floor(Math.random() * smashPhrases.length)];
+        const points = a.isGiant ? 100 : 50;
+        score += points;
+        const smashPhrases = a.isGiant
+          ? ['🫓 ¡BACHACO TOSTADO! +100', '💥 ¡NODRIZA DESTRUIDA! +100']
+          : ['🫓 ¡TOSTADA! +50', '🔥 ¡BUDARE POWER! +50', '💥 ¡PODER CRIOLLO! +50'];
+        const msg = smashPhrases[Math.floor(Math.random() * smashPhrases.length)];
         addFloatingText(msg, a.sprite.x, a.sprite.y, '#ffd54f');
         a.sprite.destroy();
         ants.splice(i, 1);
@@ -1846,14 +1938,14 @@ function updateAnts(dt) {
 function updateMangos(dt) {
   for (let i = mangos.length - 1; i >= 0; i--) {
     const m = mangos[i];
-    const playerHeightFactor = Math.max(0.65, (550 - chamito.y) / 260);
-    const climbImpact = scrollSpeed * 40;
-    m.sprite.y += (45 * playerHeightFactor + climbImpact) * dt;
+    // Velocidad autónoma según altitud (no se frena cuando el jugador para)
+    const climbRelative = held.P1_U ? 30 : (held.P1_D ? -15 : 0);
+    const fallSpeed = (m.speed || 120) + climbRelative;
+    m.sprite.y += fallSpeed * dt;
 
     const dy = Math.abs(m.sprite.y - chamito.y);
-    const dx = Math.abs(m.sprite.x - chamito.x);
 
-    if (m.tIdx === chamito.trunk && m.side === chamito.side && dy < 32 && dx < 24) {
+    if (m.tIdx === chamito.trunk && m.side === chamito.side && dy < 32) {
       if (m.isArepa) {
         sfx.golden();
         superTimer = 7.5;
