@@ -1006,11 +1006,11 @@ function updateWorldProgress(dt) {
     bestAltitude = Math.floor(altitude);
   }
 
-  // Spawn de Enemigos (Hormigas en la tierra, Naves alienígenas en el espacio)
+  // Spawn de Oleadas de Enemigos (1 a 3 bajando al azar por palos diferentes al estilo Mono de Movilnet)
   antSpawnTimer += dt;
-  const isSpace = altitude >= 750;
-  const antInterval = isSpace ? Math.max(1.1, 2.3 - (altitude - 750) * 0.0006) : Math.max(1.3, 2.9 - altitude * 0.001);
-  if (antSpawnTimer > antInterval) {
+  const isSpace = altitude >= 850;
+  const waveInterval = isSpace ? Math.max(1.1, 2.3 - (altitude - 850) * 0.0005) : Math.max(1.3, 2.8 - altitude * 0.0008);
+  if (antSpawnTimer > waveInterval) {
     antSpawnTimer = 0;
     spawnAnt();
   }
@@ -1023,207 +1023,323 @@ function updateWorldProgress(dt) {
   }
 }
 
-// --- RENDER DEL FONDO DINÁMICO (BARRIO URBANO -> EL ÁVILA -> ALTA ATMÓSFERA -> ESPACIO PROFUNDO) ---
+// Helper de interpolación de color RGB suave
+function lerpColor(c1, c2, t) {
+  t = Math.max(0, Math.min(1, t));
+  const r1 = (c1 >> 16) & 255, g1 = (c1 >> 8) & 255, b1 = c1 & 255;
+  const r2 = (c2 >> 16) & 255, g2 = (c2 >> 8) & 255, b2 = c2 & 255;
+  const r = Math.round(r1 + (r2 - r1) * t);
+  const g = Math.round(g1 + (g2 - g1) * t);
+  const b = Math.round(b1 + (b2 - b1) * t);
+  return (r << 16) | (g << 8) | b;
+}
+
+// --- RENDER DEL FONDO DINÁMICO CONTINUO (BARRIO -> CIUDAD -> EL ÁVILA -> NUBES Y AVIONES -> TIERRA -> ESPACIO -> AGUJERO NEGRO) ---
 function renderDynamicBackground() {
   if (!bgGraphics) return;
   bgGraphics.clear();
 
   const alt = altitude;
+  const timeSec = (currentScene && currentScene.time) ? (currentScene.time.now * 0.001) : 0;
 
-  // 1. ZONA BARRIO VENEZOLANO (0 a 380 metros)
-  // Al subir el chamito, el piso del patio y las casas descienden suavemente
-  if (alt < 380) {
-    const worldDownOffset = alt * 1.8;
-
-    // Cielo diurno caraqueño
-    bgGraphics.fillGradientStyle(0x1976d2, 0x1976d2, 0x64b5f6, 0x64b5f6, 1);
-    bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    // Techos del barrio a lo lejos en las colinas (profundidad de fondo)
-    bgGraphics.fillStyle(0xa93226, 0.6);
-    for (let hx = 0; hx < GAME_WIDTH; hx += 70) {
-      const hillY = 220 + worldDownOffset * 0.3;
-      bgGraphics.fillRect(hx, hillY, 65, 80);
-      bgGraphics.fillStyle(0x78909c, 0.7);
-      bgGraphics.fillRect(hx - 3, hillY - 6, 71, 7);
-      bgGraphics.fillStyle(0xa93226, 0.6);
-    }
-
-    // PISO FIRME DEL PATIO (Comienza exactamente en la parte inferior, SIN SUBTERRÁNEO)
-    const groundY = 570 + worldDownOffset;
-    if (groundY < GAME_HEIGHT + 100) {
-      // Baldosas / Cemento del patio
-      bgGraphics.fillStyle(0x546e7a, 1);
-      bgGraphics.fillRect(0, groundY, GAME_WIDTH, GAME_HEIGHT - groundY);
-      // Borde de grama y jardín
-      bgGraphics.fillStyle(0x388e3c, 1);
-      bgGraphics.fillRect(0, groundY - 6, GAME_WIDTH, 8);
-
-      // Raíces gruesas de la mata de mango saliendo del piso
-      bgGraphics.fillStyle(0x3e2723, 1);
-      TRUNK_X.forEach((tx) => {
-        bgGraphics.fillTriangle(tx - 20, groundY + 12, tx, groundY - 14, tx + 20, groundY + 12);
-      });
-    }
-
-    // CASAS DEL BARRIO DE LADRILLOS ROJOS Y TECHOS DE ZINC (Sentadas firmes en el piso)
-    const houseBaseY = 320 + worldDownOffset;
-    if (houseBaseY < GAME_HEIGHT + 250 && houseBaseY > -300) {
-      // Casa izquierda (Ladrillos rojos de arcilla)
-      bgGraphics.fillStyle(0xb73a1e, 1);
-      bgGraphics.fillRect(10, houseBaseY, 150, 240);
-
-      // Líneas de cemento
-      bgGraphics.lineStyle(1.2, 0x8d6e63, 0.7);
-      for (let ly = houseBaseY + 16; ly < houseBaseY + 240; ly += 18) {
-        bgGraphics.lineBetween(10, ly, 160, ly);
-      }
-
-      // Techo de zinc galvanizado
-      bgGraphics.fillStyle(0x90a4ae, 1);
-      bgGraphics.fillRect(5, houseBaseY - 10, 165, 14);
-      bgGraphics.fillStyle(0x78909c, 1);
-      for (let zx = 10; zx < 165; zx += 12) {
-        bgGraphics.fillRect(zx, houseBaseY - 10, 5, 14);
-      }
-
-      // Tanque azul cilíndrico de agua
-      bgGraphics.fillStyle(0x0277bd, 1);
-      bgGraphics.fillRoundedRect(35, houseBaseY - 42, 38, 32, 4);
-      bgGraphics.fillStyle(0x01579b, 1);
-      bgGraphics.fillRect(32, houseBaseY - 45, 44, 6);
-
-      // Casa derecha con platabanda
-      bgGraphics.fillStyle(0xc0392b, 1);
-      bgGraphics.fillRect(320, houseBaseY + 25, 150, 230);
-      bgGraphics.lineStyle(1.2, 0x8d6e63, 0.7);
-      for (let ly = houseBaseY + 40; ly < houseBaseY + 250; ly += 18) {
-        bgGraphics.lineBetween(320, ly, 470, ly);
-      }
-      bgGraphics.fillStyle(0x90a4ae, 1);
-      bgGraphics.fillRect(315, houseBaseY + 15, 160, 14);
-      bgGraphics.fillStyle(0x0277bd, 1);
-      bgGraphics.fillRoundedRect(350, houseBaseY - 17, 38, 32, 4);
-      bgGraphics.fillStyle(0x01579b, 1);
-      bgGraphics.fillRect(347, houseBaseY - 20, 44, 6);
-
-      // Ventana con rejas y la DOÑA VENEZOLANA con rulos
-      bgGraphics.fillStyle(0x212121, 1);
-      bgGraphics.fillRect(45, houseBaseY + 45, 38, 42);
-      bgGraphics.lineStyle(1.6, 0xffffff, 0.8);
-      bgGraphics.lineBetween(54, houseBaseY + 45, 54, houseBaseY + 87);
-      bgGraphics.lineBetween(64, houseBaseY + 45, 64, houseBaseY + 87);
-      bgGraphics.lineBetween(74, houseBaseY + 45, 74, houseBaseY + 87);
-      bgGraphics.fillStyle(0xd7a17c, 1);
-      bgGraphics.fillCircle(64, houseBaseY + 63, 8);
-      bgGraphics.fillStyle(0xf06292, 1); // Rulos rosados
-      bgGraphics.fillCircle(58, houseBaseY + 56, 3.5);
-      bgGraphics.fillCircle(64, houseBaseY + 54, 3.5);
-      bgGraphics.fillCircle(70, houseBaseY + 56, 3.5);
-      bgGraphics.fillStyle(0xffd54f, 1); // Bata
-      bgGraphics.fillRect(56, houseBaseY + 71, 16, 16);
-
-      // Cables de luz
-      bgGraphics.lineStyle(1.4, 0x212121, 0.7);
-      bgGraphics.lineBetween(0, houseBaseY + 15, GAME_WIDTH, houseBaseY + 55);
-      bgGraphics.lineBetween(0, houseBaseY + 30, GAME_WIDTH, houseBaseY + 70);
-
-      // Tendedero de ropa con franela tricolor
-      bgGraphics.lineStyle(1, 0xffffff, 0.6);
-      bgGraphics.lineBetween(170, houseBaseY + 75, 310, houseBaseY + 90);
-      bgGraphics.fillStyle(0xffd600, 1);
-      bgGraphics.fillRect(200, houseBaseY + 79, 14, 16);
-      bgGraphics.fillStyle(0x1565c0, 1);
-      bgGraphics.fillRect(230, houseBaseY + 83, 14, 16);
-      bgGraphics.fillStyle(0xd32f2f, 1);
-      bgGraphics.fillRect(260, houseBaseY + 87, 14, 16);
-    }
+  // 1. GRADIENTE DE CIELO CONTINUO (Día -> Atardecer caraqueño -> Alta atmósfera -> Espacio)
+  let skyTop, skyBot;
+  if (alt < 450) {
+    // Día diurno caraqueño despejado
+    skyTop = 0x1976d2;
+    skyBot = 0x64b5f6;
+  } else if (alt < 1050) {
+    // Atardecer cálido caraqueño sobre El Ávila
+    const t = (alt - 450) / 600;
+    skyTop = lerpColor(0x1976d2, 0x0d2244, t);
+    skyBot = lerpColor(0x64b5f6, 0xf57c00, t);
+  } else if (alt < 1850) {
+    // Alta atmósfera / Estratósfera
+    const t = (alt - 1050) / 800;
+    skyTop = lerpColor(0x0d2244, 0x000000, t);
+    skyBot = lerpColor(0xf57c00, 0x08152e, t);
+  } else if (alt < 2700) {
+    // Espacio profundo con sutil nebulosa violeta
+    const t = (alt - 1850) / 850;
+    skyTop = 0x000000;
+    skyBot = lerpColor(0x08152e, 0x140528, t);
+  } else {
+    // Espacio negro infinito final
+    skyTop = 0x000000;
+    skyBot = 0x000000;
   }
-  // 2. ZONA EL ÁVILA Y CIELO CARAQUEÑO (380 a 750 metros)
-  else if (alt < 750) {
-    const p = (alt - 380) / 370;
-    // Transición gradual de azul claro a naranja atardecer
-    bgGraphics.fillGradientStyle(0x1565c0, 0x1565c0, 0xe65100, 0xf57c00, 1);
-    bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Silueta imponente y verde del Cerro El Ávila que va bajando al trepar
-    const avilaY = 320 + ((alt - 380) * 0.45);
+  bgGraphics.fillGradientStyle(skyTop, skyTop, skyBot, skyBot, 1);
+  bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+  // 2. MONTAÑA EL ÁVILA (VISIBLE DESDE EL INICIO 0m DE FONDO DETRÁS DE LAS CASAS)
+  const avilaY = 250 + (alt * 0.38);
+  if (avilaY < GAME_HEIGHT + 220) {
+    // Silueta majestuosa de El Ávila
     bgGraphics.fillStyle(0x0e3d1c, 0.95);
     bgGraphics.beginPath();
-    bgGraphics.moveTo(0, avilaY + 90);
-    bgGraphics.lineTo(110, avilaY - 30);
-    bgGraphics.lineTo(240, avilaY + 20);
-    bgGraphics.lineTo(360, avilaY - 70);
-    bgGraphics.lineTo(480, avilaY - 10);
+    bgGraphics.moveTo(0, avilaY + 95);
+    bgGraphics.lineTo(105, avilaY - 35);
+    bgGraphics.lineTo(235, avilaY + 15);
+    bgGraphics.lineTo(355, avilaY - 75); // Pico Naiguatá / Hotel Humboldt
+    bgGraphics.lineTo(480, avilaY - 15);
     bgGraphics.lineTo(480, GAME_HEIGHT);
     bgGraphics.lineTo(0, GAME_HEIGHT);
     bgGraphics.closePath();
     bgGraphics.fillPath();
 
-    // Nubes
-    bgGraphics.fillStyle(0xffffff, 0.35);
-    bgGraphics.fillCircle(80, 130, 45);
-    bgGraphics.fillCircle(125, 130, 55);
-    bgGraphics.fillCircle(170, 130, 40);
-    bgGraphics.fillCircle(340, 170, 40);
-    bgGraphics.fillCircle(380, 170, 50);
+    // Antena del Teleférico / Humboldt en la cima
+    bgGraphics.lineStyle(1.6, 0xffffff, 0.85);
+    bgGraphics.lineBetween(355, avilaY - 75, 355, avilaY - 96);
+    bgGraphics.fillStyle(0xff1744, 1);
+    bgGraphics.fillCircle(355, avilaY - 97, 2); // Baliza roja de la antena
   }
-  // 3. ZONA ALTA ATMÓSFERA Y SATÉLITE SIMÓN BOLÍVAR (750 a 1500 metros - COMIENZA EL ESPACIO)
-  else if (alt < 1500) {
-    bgGraphics.fillGradientStyle(0x020813, 0x020813, 0x0a1a33, 0x0a1a33, 1);
-    bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Estrellas
-    bgGraphics.fillStyle(0xffffff, 0.9);
-    for (let i = 0; i < 35; i++) {
+  // 3. CIUDAD DE CARACAS (EDIFICIOS URBANOS ENTRE EL BARRIO Y LA MONTAÑA)
+  const cityY = 320 + (alt * 0.75);
+  if (cityY < GAME_HEIGHT + 200 && cityY > -150) {
+    const buildings = [
+      { x: 18, w: 32, h: 110, c: 0x37474f },
+      { x: 55, w: 26, h: 80, c: 0x455a64 },
+      { x: 90, w: 45, h: 155, c: 0x263238 }, // Torre Parque Central
+      { x: 142, w: 35, h: 95, c: 0x546e7a },
+      { x: 260, w: 42, h: 150, c: 0x263238 }, // Torre gemela Parque Central
+      { x: 310, w: 30, h: 75, c: 0x455a64 },
+      { x: 345, w: 38, h: 105, c: 0x37474f },
+      { x: 410, w: 40, h: 85, c: 0x546e7a },
+    ];
+    buildings.forEach((b) => {
+      bgGraphics.fillStyle(b.c, 0.85);
+      bgGraphics.fillRect(b.x, cityY - b.h + 80, b.w, b.h);
+      // Ventanitas iluminadas de noche/atardecer
+      if (alt > 300) {
+        bgGraphics.fillStyle(0xffeb3b, 0.7);
+        for (let wy = cityY - b.h + 90; wy < cityY + 70; wy += 14) {
+          bgGraphics.fillRect(b.x + 6, wy, 4, 5);
+          bgGraphics.fillRect(b.x + b.w - 10, wy, 4, 5);
+        }
+      }
+    });
+  }
+
+  // 4. BARRIO CARAQUEÑO Y PATIO FIRME (PRIMER PLANO TERRESTRE)
+  const barrioY = 320 + (alt * 1.5);
+  const groundY = 570 + (alt * 1.5);
+
+  if (groundY < GAME_HEIGHT + 100) {
+    // Piso de baldosas de patio
+    bgGraphics.fillStyle(0x546e7a, 1);
+    bgGraphics.fillRect(0, groundY, GAME_WIDTH, GAME_HEIGHT - groundY);
+    bgGraphics.fillStyle(0x388e3c, 1);
+    bgGraphics.fillRect(0, groundY - 6, GAME_WIDTH, 8);
+
+    // Raíces gruesas de la mata de mango
+    bgGraphics.fillStyle(0x3e2723, 1);
+    TRUNK_X.forEach((tx) => {
+      bgGraphics.fillTriangle(tx - 20, groundY + 12, tx, groundY - 14, tx + 20, groundY + 12);
+    });
+  }
+
+  if (barrioY < GAME_HEIGHT + 250 && barrioY > -250) {
+    // Casa izquierda de ladrillos rojos
+    bgGraphics.fillStyle(0xb73a1e, 1);
+    bgGraphics.fillRect(10, barrioY, 150, 240);
+    bgGraphics.lineStyle(1.2, 0x8d6e63, 0.7);
+    for (let ly = barrioY + 16; ly < barrioY + 240; ly += 18) {
+      bgGraphics.lineBetween(10, ly, 160, ly);
+    }
+    // Techo de zinc
+    bgGraphics.fillStyle(0x90a4ae, 1);
+    bgGraphics.fillRect(5, barrioY - 10, 165, 14);
+    bgGraphics.fillStyle(0x78909c, 1);
+    for (let zx = 10; zx < 165; zx += 12) {
+      bgGraphics.fillRect(zx, barrioY - 10, 5, 14);
+    }
+    // Tanque azul
+    bgGraphics.fillStyle(0x0277bd, 1);
+    bgGraphics.fillRoundedRect(35, barrioY - 42, 38, 32, 4);
+    bgGraphics.fillStyle(0x01579b, 1);
+    bgGraphics.fillRect(32, barrioY - 45, 44, 6);
+
+    // Casa derecha con platabanda
+    bgGraphics.fillStyle(0xc0392b, 1);
+    bgGraphics.fillRect(320, barrioY + 25, 150, 230);
+    bgGraphics.lineStyle(1.2, 0x8d6e63, 0.7);
+    for (let ly = barrioY + 40; ly < barrioY + 250; ly += 18) {
+      bgGraphics.lineBetween(320, ly, 470, ly);
+    }
+    bgGraphics.fillStyle(0x90a4ae, 1);
+    bgGraphics.fillRect(315, barrioY + 15, 160, 14);
+    bgGraphics.fillStyle(0x0277bd, 1);
+    bgGraphics.fillRoundedRect(350, barrioY - 17, 38, 32, 4);
+    bgGraphics.fillStyle(0x01579b, 1);
+    bgGraphics.fillRect(347, barrioY - 20, 44, 6);
+
+    // Doña en la ventana con rulos
+    bgGraphics.fillStyle(0x212121, 1);
+    bgGraphics.fillRect(45, barrioY + 45, 38, 42);
+    bgGraphics.lineStyle(1.6, 0xffffff, 0.8);
+    bgGraphics.lineBetween(54, barrioY + 45, 54, barrioY + 87);
+    bgGraphics.lineBetween(64, barrioY + 45, 64, barrioY + 87);
+    bgGraphics.lineBetween(74, barrioY + 45, 74, barrioY + 87);
+    bgGraphics.fillStyle(0xd7a17c, 1);
+    bgGraphics.fillCircle(64, barrioY + 63, 8);
+    bgGraphics.fillStyle(0xf06292, 1);
+    bgGraphics.fillCircle(58, barrioY + 56, 3.5);
+    bgGraphics.fillCircle(64, barrioY + 54, 3.5);
+    bgGraphics.fillCircle(70, barrioY + 56, 3.5);
+    bgGraphics.fillStyle(0xffd54f, 1);
+    bgGraphics.fillRect(56, barrioY + 71, 16, 16);
+
+    // Cables de luz y tendedero tricolor
+    bgGraphics.lineStyle(1.4, 0x212121, 0.7);
+    bgGraphics.lineBetween(0, barrioY + 15, GAME_WIDTH, barrioY + 55);
+    bgGraphics.lineStyle(1, 0xffffff, 0.6);
+    bgGraphics.lineBetween(170, barrioY + 75, 310, barrioY + 90);
+    bgGraphics.fillStyle(0xffd600, 1); bgGraphics.fillRect(200, barrioY + 79, 14, 16);
+    bgGraphics.fillStyle(0x1565c0, 1); bgGraphics.fillRect(230, barrioY + 83, 14, 16);
+    bgGraphics.fillStyle(0xd32f2f, 1); bgGraphics.fillRect(260, barrioY + 87, 14, 16);
+  }
+
+  // 5. NUBES Y AVIONES PASANDO EN EL FONDO (550m a 1450m)
+  if (alt >= 450 && alt <= 1500) {
+    const cloudY = 380 - ((alt - 450) * 0.65);
+    bgGraphics.fillStyle(0xffffff, 0.45);
+    // Grupo de nubes 1
+    bgGraphics.fillCircle(70, cloudY + 80, 45);
+    bgGraphics.fillCircle(120, cloudY + 70, 58);
+    bgGraphics.fillCircle(170, cloudY + 85, 42);
+    // Grupo de nubes 2
+    bgGraphics.fillCircle(330, cloudY - 60, 48);
+    bgGraphics.fillCircle(380, cloudY - 70, 62);
+    bgGraphics.fillCircle(430, cloudY - 55, 45);
+
+    // AVIONES PASANDO EN EL FONDO DE LAS NUBES
+    if (alt >= 550 && alt <= 1350) {
+      const planeX = ((timeSec * 75) % (GAME_WIDTH + 140)) - 70;
+      const planeY = cloudY + 20;
+
+      // Estela de vapor del avión
+      bgGraphics.lineStyle(2, 0xffffff, 0.45);
+      bgGraphics.lineBetween(planeX - 45, planeY, planeX - 10, planeY);
+
+      // Fuselaje del avión
+      bgGraphics.fillStyle(0xffffff, 0.95);
+      bgGraphics.fillRoundedRect(planeX - 12, planeY - 3, 28, 6, 2);
+      // Alas
+      bgGraphics.fillTriangle(planeX - 2, planeY - 14, planeX + 8, planeY - 3, planeX - 2, planeY - 3);
+      bgGraphics.fillTriangle(planeX - 2, planeY + 14, planeX + 8, planeY + 3, planeX - 2, planeY + 3);
+      // Cola tricolor venezolana
+      bgGraphics.fillStyle(0xffd600, 1); bgGraphics.fillRect(planeX - 11, planeY - 7, 3, 2);
+      bgGraphics.fillStyle(0x1565c0, 1); bgGraphics.fillRect(planeX - 11, planeY - 5, 3, 2);
+      bgGraphics.fillStyle(0xd32f2f, 1); bgGraphics.fillRect(planeX - 11, planeY - 3, 3, 2);
+
+      // Luz roja intermitente en el ala
+      if (Math.floor(timeSec * 4) % 2 === 0) {
+        bgGraphics.fillStyle(0xff1744, 1);
+        bgGraphics.fillCircle(planeX - 2, planeY - 14, 2);
+      }
+    }
+  }
+
+  // 6. ESPACIO CON ESTRELLAS, SATÉLITE Y PLANETA TIERRA (MUNDO) ABAJO (1000m+)
+  if (alt >= 1000) {
+    // Estrellas titilantes en el espacio
+    const starCount = Math.min(65, 25 + Math.floor((alt - 1000) * 0.03));
+    bgGraphics.fillStyle(0xffffff, 0.95);
+    for (let i = 0; i < starCount; i++) {
       const sx = ((i * 73) % GAME_WIDTH);
-      const sy = (((i * 97) + alt * 0.3) % GAME_HEIGHT);
-      bgGraphics.fillCircle(sx, sy, (i % 3 === 0 ? 2 : 1.2));
+      const sy = (((i * 97) + alt * 0.2) % GAME_HEIGHT);
+      const twinkle = (Math.floor(timeSec * 3 + i) % 3 === 0) ? 2.5 : 1.2;
+      bgGraphics.fillCircle(sx, sy, twinkle);
     }
 
-    // Curvatura de la Tierra abajo
-    bgGraphics.fillStyle(0x1565c0, 0.7);
-    bgGraphics.beginPath();
-    bgGraphics.arc(240, 930, 390, Math.PI, 0, false);
-    bgGraphics.fillPath();
+    // CURVATURA DEL PLANETA TIERRA (EL MUNDO) ABAJO
+    const earthY = 720 + ((alt - 1400) * 0.25);
+    if (earthY > 200 && earthY < GAME_HEIGHT + 450) {
+      // Brillo atmosférico azul
+      bgGraphics.lineStyle(6, 0x00e5ff, 0.5);
+      bgGraphics.strokeCircle(240, earthY + 360, 400);
 
-    // Satélite Simón Bolívar orbitando
-    const satY = ((alt * 0.3) % 450) + 90;
-    bgGraphics.fillStyle(0xffd700, 1);
-    bgGraphics.fillRect(360, satY, 22, 16);
-    bgGraphics.fillStyle(0x0288d1, 1);
-    bgGraphics.fillRect(328, satY + 4, 28, 8);
-    bgGraphics.fillRect(386, satY + 4, 28, 8);
-    bgGraphics.lineStyle(1.5, 0xffffff, 1);
-    bgGraphics.lineBetween(371, satY, 371, satY - 8);
-    bgGraphics.strokeCircle(371, satY - 10, 4);
+      // Océanos azules de la Tierra
+      bgGraphics.fillStyle(0x1565c0, 0.9);
+      bgGraphics.fillCircle(240, earthY + 360, 396);
+
+      // Continentes verdes (Suramérica / Venezuela)
+      bgGraphics.fillStyle(0x2e7d32, 0.85);
+      bgGraphics.fillEllipse(220, earthY - 10, 85, 45);
+      bgGraphics.fillEllipse(280, earthY + 15, 65, 35);
+
+      // Remolinos de nubes blancas en la Tierra
+      bgGraphics.fillStyle(0xffffff, 0.4);
+      bgGraphics.fillEllipse(180, earthY - 20, 60, 15);
+      bgGraphics.fillEllipse(260, earthY + 5, 80, 18);
+    }
+
+    // SATÉLITE SIMÓN BOLÍVAR ORBITANDO
+    if (alt >= 1100 && alt <= 2200) {
+      const satY = ((alt * 0.3) % 460) + 80;
+      bgGraphics.fillStyle(0xffd700, 1);
+      bgGraphics.fillRect(360, satY, 22, 16);
+      bgGraphics.fillStyle(0x0288d1, 1);
+      bgGraphics.fillRect(328, satY + 4, 28, 8);
+      bgGraphics.fillRect(386, satY + 4, 28, 8);
+      bgGraphics.lineStyle(1.5, 0xffffff, 1);
+      bgGraphics.lineBetween(371, satY, 371, satY - 8);
+      bgGraphics.strokeCircle(371, satY - 10, 4);
+    }
   }
-  // 4. ZONA ESPACIO PROFUNDO Y AGUJERO NEGRO (1500m+)
-  else {
-    bgGraphics.fillGradientStyle(0x000000, 0x000000, 0x140526, 0x140526, 1);
-    bgGraphics.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
+  // 7. OTROS MUNDOS Y PLANETAS LEJANOS (1800m a 2900m)
+  if (alt >= 1800 && alt <= 3000) {
+    const planetY = 240 + ((alt - 2200) * 0.25);
+
+    // Planeta extraterrestre anillado (tipo Saturno cósmico)
+    if (planetY > -100 && planetY < GAME_HEIGHT + 100) {
+      bgGraphics.fillStyle(0x7b1fa2, 0.9);
+      bgGraphics.fillCircle(90, planetY, 28);
+      bgGraphics.fillStyle(0xba68c8, 0.85);
+      bgGraphics.fillCircle(85, planetY - 4, 18);
+      // Anillos holográficos inclinados
+      bgGraphics.lineStyle(3, 0x00e5ff, 0.85);
+      bgGraphics.strokeEllipse(90, planetY, 78, 18);
+      bgGraphics.lineStyle(1.5, 0xffd54f, 0.7);
+      bgGraphics.strokeEllipse(90, planetY, 90, 22);
+    }
+
+    // Luna alienígena carmesí lejana
+    const moonY = 330 + ((alt - 2400) * 0.28);
+    if (moonY > -80 && moonY < GAME_HEIGHT + 80) {
+      bgGraphics.fillStyle(0xc62828, 0.9);
+      bgGraphics.fillCircle(400, moonY, 18);
+      bgGraphics.fillStyle(0x8e0000, 0.8);
+      bgGraphics.fillCircle(396, moonY - 3, 5);
+      bgGraphics.fillCircle(405, moonY + 4, 4);
+    }
+  }
+
+  // 8. AGUJERO NEGRO GIRATORIO Y ESPACIO FINAL (2500m+)
+  if (alt >= 2500) {
     // Nebulosa violeta y cian
-    bgGraphics.fillStyle(0x8e24aa, 0.28);
+    bgGraphics.fillStyle(0x8e24aa, 0.25);
     bgGraphics.fillCircle(140, 260, 130);
-    bgGraphics.fillStyle(0x00bcd4, 0.22);
+    bgGraphics.fillStyle(0x00bcd4, 0.2);
     bgGraphics.fillCircle(340, 360, 110);
 
-    // Estrellas titilando
-    bgGraphics.fillStyle(0xffffff, 0.95);
-    for (let i = 0; i < 50; i++) {
-      const sx = ((i * 67) % GAME_WIDTH);
-      const sy = (((i * 89) + alt * 0.25) % GAME_HEIGHT);
-      bgGraphics.fillCircle(sx, sy, (i % 4 === 0 ? 2.5 : 1.2));
-    }
+    const holeY = 190 + ((alt - 3000) * 0.12);
+    if (holeY > -100 && holeY < GAME_HEIGHT + 100) {
+      // Disco de acreción giratorio con fuego cósmico
+      bgGraphics.lineStyle(5, 0xff6d00, 0.85);
+      bgGraphics.strokeEllipse(240, holeY, 82, 26);
+      bgGraphics.lineStyle(2.5, 0xffeb3b, 0.95);
+      bgGraphics.strokeEllipse(240, holeY, 94, 30);
+      bgGraphics.lineStyle(1.5, 0xffffff, 0.75);
+      bgGraphics.strokeEllipse(240, holeY, 104, 34);
 
-    // Agujero negro giratorio
-    bgGraphics.lineStyle(4, 0xffa000, 0.85);
-    bgGraphics.strokeEllipse(240, 190, 75, 24);
-    bgGraphics.lineStyle(2, 0xffffff, 0.9);
-    bgGraphics.strokeEllipse(240, 190, 85, 28);
-    bgGraphics.fillStyle(0x000000, 1);
-    bgGraphics.fillCircle(240, 190, 22);
+      // Horizonte de sucesos negro absoluto
+      bgGraphics.fillStyle(0x000000, 1);
+      bgGraphics.fillCircle(240, holeY, 24);
+    }
   }
 }
 
@@ -1280,40 +1396,68 @@ function renderMangoTrunks() {
 
 function spawnAnt() {
   if (!currentScene) return;
-  const tIdx = Math.floor(Math.random() * NUM_TRUNKS);
-  const side = Math.random() < 0.5 ? -1 : 1;
-  const r = Math.random();
+  const isSpaceShip = altitude >= 850;
 
-  const isSpaceShip = altitude >= 750;
-  let tex;
-  // La velocidad base escala dinámicamente con la altitud: mientras más arriba, más rápido bajan!
-  let speed = 75 + altitude * 0.085;
-
-  if (!isSpaceShip) {
-    // EN LA TIERRA: HORMIGAS DEL PATIO Y LA MONTAÑA
-    tex = 'tex_ant_red';
-    if (altitude > 180 && r > 0.6) {
-      tex = 'tex_ant_black';
-      speed *= 1.25;
-    } else if (altitude > 380 && r < 0.35) {
-      tex = 'tex_ant_fire';
-      speed *= 1.45;
-    }
+  // Dinámica clásica del Mono de Movilnet: 1 a 3 enemigos bajando a la vez por distintos troncos
+  let count = 1;
+  const rCount = Math.random();
+  if (altitude < 200) {
+    count = rCount < 0.28 ? 2 : 1;
+  } else if (altitude < 650) {
+    count = rCount < 0.65 ? 2 : 1;
+  } else if (altitude < 1400) {
+    count = rCount < 0.25 ? 1 : (rCount < 0.8 ? 2 : 3);
   } else {
-    // EN EL ESPACIO: NAVES EXTRATERRESTRES (OVNIS)
-    if (r < 0.55) {
-      tex = 'tex_ufo_scout';
-      speed *= 1.35;
-    } else {
-      tex = 'tex_ufo_fighter';
-      speed *= 1.6;
-    }
+    count = rCount < 0.4 ? 2 : 3;
   }
 
-  // Centrado en el tronco o haz cósmico (las naves flotan en el centro, las hormigas sobre la madera)
-  const enemyX = TRUNK_X[tIdx] + side * (isSpaceShip ? 8 : 5);
-  const sprite = currentScene.add.sprite(enemyX, -30, tex).setDepth(15);
-  ants.push({ tIdx, side, speed, isSpaceShip, sprite });
+  // Mezclar troncos para seleccionar 'count' palos distintos
+  // Garantiza que SIEMPRE quede al menos 1 o 2 troncos libres para que el jugador pueda esquivar
+  const trunksPool = [0, 1, 2, 3];
+  for (let i = trunksPool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [trunksPool[i], trunksPool[j]] = [trunksPool[j], trunksPool[i]];
+  }
+  const selectedTrunks = trunksPool.slice(0, count);
+
+  selectedTrunks.forEach((tIdx, idx) => {
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const rType = Math.random();
+
+    // La velocidad base escala fuertemente según los metros subidos: ¡mientras más arriba, más rápido bajan!
+    let speed = 75 + (altitude * 0.11);
+
+    let tex;
+    if (!isSpaceShip) {
+      // EN LA TIERRA: HORMIGAS DEL PATIO Y LA MONTAÑA
+      tex = 'tex_ant_red';
+      if (altitude > 180 && rType > 0.6) {
+        tex = 'tex_ant_black';
+        speed *= 1.25;
+      } else if (altitude > 400 && rType < 0.35) {
+        tex = 'tex_ant_fire';
+        speed *= 1.45;
+      }
+    } else {
+      // EN EL ESPACIO: NAVES EXTRATERRESTRES (OVNIS)
+      if (rType < 0.55) {
+        tex = 'tex_ufo_scout';
+        speed *= 1.35;
+      } else {
+        tex = 'tex_ufo_fighter';
+        speed *= 1.6;
+      }
+    }
+
+    // Variación natural de velocidad
+    speed *= (0.92 + Math.random() * 0.18);
+
+    const enemyX = TRUNK_X[tIdx] + side * (isSpaceShip ? 8 : 5);
+    // Escalonar verticalmente para que no caigan en bloque idéntico
+    const spawnY = -28 - (idx * 22);
+    const sprite = currentScene.add.sprite(enemyX, spawnY, tex).setDepth(15);
+    ants.push({ tIdx, side, speed, isSpaceShip, sprite });
+  });
 }
 
 function spawnMango() {
