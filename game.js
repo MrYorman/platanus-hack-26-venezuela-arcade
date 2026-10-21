@@ -45,44 +45,60 @@ const justPressed = {
   P1_L: false,
   P1_R: false,
   START1: false,
-  P1_1: false,
+  PAUSE: false,
   RESET: false,
 };
 
 window.addEventListener('keydown', (e) => {
   const k = e.key;
   const code = e.code;
+  const lower = k ? k.toLowerCase() : '';
 
-  if (k === 'ArrowUp' || k === 'w' || k === 'W' || code === 'KeyW' || code === 'ArrowUp') {
+  // 1. Movimiento del Chamito (WASD y Flechas)
+  if (k === 'ArrowUp' || lower === 'w' || code === 'KeyW' || code === 'ArrowUp') {
     if (!held.P1_U) justPressed.P1_U = true;
     held.P1_U = true;
     e.preventDefault();
   }
-  if (k === 'ArrowDown' || k === 's' || k === 'S' || code === 'KeyS' || code === 'ArrowDown') {
+  if (k === 'ArrowDown' || lower === 's' || code === 'KeyS' || code === 'ArrowDown') {
     if (!held.P1_D) justPressed.P1_D = true;
     held.P1_D = true;
     e.preventDefault();
   }
-  if (k === 'ArrowLeft' || k === 'a' || k === 'A' || code === 'KeyA' || code === 'ArrowLeft') {
+  if (k === 'ArrowLeft' || lower === 'a' || code === 'KeyA' || code === 'ArrowLeft') {
     if (!held.P1_L) justPressed.P1_L = true;
     held.P1_L = true;
     e.preventDefault();
   }
-  if (k === 'ArrowRight' || k === 'd' || k === 'D' || code === 'KeyD' || code === 'ArrowRight') {
+  if (k === 'ArrowRight' || lower === 'd' || code === 'KeyD' || code === 'ArrowRight') {
     if (!held.P1_R) justPressed.P1_R = true;
     held.P1_R = true;
     e.preventDefault();
   }
-  if (k === 'Enter' || k === ' ' || k === 'Spacebar' || code === 'Space' || code === 'Enter') {
+
+  // 2. Start / Continuar en el mueble arcade físico (ENTER)
+  if (k === 'Enter' || code === 'Enter') {
     if (!held.START1) justPressed.START1 = true;
     held.START1 = true;
     e.preventDefault();
   }
-  if (k === 'p' || k === 'P' || k === 'Escape' || code === 'KeyP' || code === 'Escape') {
-    justPressed.P1_1 = true;
+
+  // 3. Pausa / Reanudar: Fila inferior de botones arcade (J, K, L) + Tecla ESPACIO + P / Escape
+  if (k === ' ' || k === 'Spacebar' || code === 'Space' ||
+      lower === 'j' || code === 'KeyJ' ||
+      lower === 'k' || code === 'KeyK' ||
+      lower === 'l' || code === 'KeyL' ||
+      lower === 'p' || code === 'KeyP' ||
+      k === 'Escape' || code === 'Escape') {
+    justPressed.PAUSE = true;
     e.preventDefault();
   }
-  if (k === 'r' || k === 'R' || code === 'KeyR') {
+
+  // 4. Reiniciar Partida: Fila superior de botones arcade (U, I, O) + Tecla R
+  if (lower === 'r' || code === 'KeyR' ||
+      lower === 'u' || code === 'KeyU' ||
+      lower === 'i' || code === 'KeyI' ||
+      lower === 'o' || code === 'KeyO') {
     justPressed.RESET = true;
     e.preventDefault();
   }
@@ -1081,36 +1097,53 @@ function drawCRTScanlines(scene) {
 function update(time, delta) {
   const dt = delta / 1000;
 
-  // Menú principal (iniciar con Espacio, Enter o clic)
+  // Menú principal (iniciar con Enter, Espacio, R, o cualquier botón arcade)
   if (gameState === STATE_MENU) {
-    if (justPressed.START1 || justPressed.RESET) {
+    if (justPressed.START1 || justPressed.PAUSE || justPressed.RESET) {
       justPressed.START1 = false;
+      justPressed.PAUSE = false;
       justPressed.RESET = false;
       startFreshGame();
     }
     return;
   }
 
-  // Pausa con P o Escape
-  if (justPressed.P1_1) {
-    justPressed.P1_1 = false;
-    if (gameState === STATE_PLAYING) {
-      gameState = STATE_PAUSED;
-      centerMenuText.setText('PAUSA\n\nPresiona P para continuar').setVisible(true);
-      return;
-    } else if (gameState === STATE_PAUSED) {
+  // Estado de PAUSA activa
+  if (gameState === STATE_PAUSED) {
+    // Reanudar con Pausa (Espacio, J, K, L, P) o con Enter
+    if (justPressed.PAUSE || justPressed.START1) {
+      justPressed.PAUSE = false;
+      justPressed.START1 = false;
       gameState = STATE_PLAYING;
       centerMenuText.setVisible(false);
       return;
     }
+    // Reiniciar desde pausa con R, U, I, O
+    if (justPressed.RESET) {
+      justPressed.RESET = false;
+      startFreshGame();
+      return;
+    }
+    return;
   }
 
-  if (gameState === STATE_PAUSED) return;
+  // Pausar durante la partida con Espacio, J, K, L, P o Escape
+  if (justPressed.PAUSE) {
+    justPressed.PAUSE = false;
+    if (gameState === STATE_PLAYING) {
+      gameState = STATE_PAUSED;
+      centerMenuText.setText(
+        '⏸️ PAUSA\n\n[ESPACIO] o [J, K, L] : Continuar\n[R] o [U, I, O] : Reiniciar'
+      ).setVisible(true);
+      return;
+    }
+  }
 
   // Estado de Caída del Chamito al perder las vidas
   if (gameState === STATE_DYING) {
     // Descartar teclas durante la animación de caída para que no salte el Game Over
     justPressed.START1 = false;
+    justPressed.PAUSE = false;
     justPressed.RESET = false;
     justPressed.P1_U = false;
 
@@ -1132,21 +1165,23 @@ function update(time, delta) {
     if (gameOverCooldown > 0) {
       gameOverCooldown -= dt;
       justPressed.START1 = false;
+      justPressed.PAUSE = false;
       justPressed.RESET = false;
       justPressed.P1_U = false;
       return;
     }
 
-    // Una vez pasado el cooldown, solo cuando el jugador presione Espacio o Enter se reinicia
-    if (justPressed.START1 || justPressed.RESET) {
+    // Una vez pasado el cooldown, reiniciar con Enter, Espacio, R o botones arcade
+    if (justPressed.START1 || justPressed.PAUSE || justPressed.RESET) {
       justPressed.START1 = false;
+      justPressed.PAUSE = false;
       justPressed.RESET = false;
       startFreshGame();
     }
     return;
   }
 
-  // Tecla R como reset opcional en plena partida
+  // Reiniciar durante la partida (tecla R o botones arcade U, I, O)
   if (justPressed.RESET) {
     justPressed.RESET = false;
     startFreshGame();
