@@ -977,6 +977,30 @@ function generateProceduralTextures(scene) {
   gU3.fillStyle(0xff1744, 1); gU3.fillCircle(22, 16, 1.5);
   gU3.generateTexture('tex_ufo_cruiser', 28, 28);
   gU3.destroy();
+
+  // 9C. METEORITO INCANDESCENTE DE MAGMA ESPACIAL (Nuevo enemigo cósmico)
+  const gU4 = scene.make.graphics({ x: 0, y: 0, add: false });
+  // Resplandor de calor / fuego cósmico
+  gU4.fillStyle(0xff3d00, 0.45);
+  gU4.fillCircle(13, 13, 12);
+  gU4.fillStyle(0xff9100, 0.55);
+  gU4.fillCircle(13, 13, 9.5);
+  // Núcleo de roca volcánica oscura
+  gU4.fillStyle(0x212121, 1);
+  gU4.fillCircle(13, 13, 7.5);
+  // Grietas de magma ardiente
+  gU4.lineStyle(1.8, 0xffd600, 1);
+  gU4.lineBetween(8, 10, 14, 13);
+  gU4.lineBetween(14, 13, 17, 9);
+  gU4.lineBetween(14, 13, 13, 19);
+  gU4.fillStyle(0xffffff, 1);
+  gU4.fillCircle(14, 13, 1.5);
+  // Chispas / fragmentos incandescentes
+  gU4.fillStyle(0xffab00, 1);
+  gU4.fillRect(6, 6, 2, 2);
+  gU4.fillRect(18, 16, 2, 2);
+  gU4.generateTexture('tex_space_meteor', 26, 26);
+  gU4.destroy();
 }
 
 // --- HUD SUPERIOR ELEGANTE Y LEGIBLE ---
@@ -1798,6 +1822,65 @@ function renderDynamicBackground() {
       bgGraphics.lineBetween(371, satY, 371, satY - 8);
       bgGraphics.strokeCircle(371, satY - 10, 4);
     }
+
+    // 6B. NUEVO AMBIENTE: NEBULOSA INTERESTELAR Y ESTACIÓN ESPACIAL MIRANDA (1350m a 2150m)
+    if (alt >= 1350 && alt <= 2200) {
+      const stationY = 220 + ((alt - 1350) * 0.45);
+      const nebAlpha = Math.min(0.35, Math.sin(((alt - 1350) / 850) * Math.PI) * 0.35);
+
+      // Nubes de plasma cósmico y polvo de estrellas
+      bgGraphics.fillStyle(0x7c4dff, nebAlpha);
+      bgGraphics.fillEllipse(170, stationY - 25, 270, 110);
+      bgGraphics.fillStyle(0x00e5ff, nebAlpha * 0.75);
+      bgGraphics.fillEllipse(320, stationY + 25, 210, 95);
+
+      // Destellos de polvo interestelar
+      bgGraphics.fillStyle(0xffffff, nebAlpha * 2.2);
+      for (let k = 0; k < 10; k++) {
+        const nx = (k * 47 + 35) % GAME_WIDTH;
+        const ny = stationY - 45 + ((k * 21) % 110);
+        bgGraphics.fillCircle(nx, ny, (k % 3 === 0 ? 2 : 1.2));
+      }
+
+      // ESTACIÓN ESPACIAL ORBITAL "MIRANDA" (Cruza majestuosamente en órbita alta)
+      if (stationY > -60 && stationY < GAME_HEIGHT + 60) {
+        const stX = ((timeSec * 32 * worldSpeedFactor) % (GAME_WIDTH + 180)) - 90;
+
+        // Paneles solares fotovoltaicos dorados y cian (ala izquierda)
+        bgGraphics.fillStyle(0x0288d1, 0.95);
+        bgGraphics.fillRect(stX - 42, stationY - 9, 32, 18);
+        bgGraphics.lineStyle(1.2, 0xffd700, 0.9);
+        bgGraphics.strokeRect(stX - 42, stationY - 9, 32, 18);
+        bgGraphics.lineBetween(stX - 26, stationY - 9, stX - 26, stationY + 9);
+        bgGraphics.lineBetween(stX - 42, stationY, stX - 10, stationY);
+
+        // Paneles solares fotovoltaicos (ala derecha)
+        bgGraphics.fillStyle(0x0288d1, 0.95);
+        bgGraphics.fillRect(stX + 10, stationY - 9, 32, 18);
+        bgGraphics.lineStyle(1.2, 0xffd700, 0.9);
+        bgGraphics.strokeRect(stX + 10, stationY - 9, 32, 18);
+        bgGraphics.lineBetween(stX + 26, stationY - 9, stX + 26, stationY + 9);
+        bgGraphics.lineBetween(stX + 10, stationY, stX + 42, stationY);
+
+        // Módulo presurizado central de la estación
+        bgGraphics.fillStyle(0xe0e0e0, 1);
+        bgGraphics.fillRoundedRect(stX - 10, stationY - 6, 20, 12, 3);
+        // Franja tricolor de la bandera
+        bgGraphics.fillStyle(0xffd600, 1); bgGraphics.fillRect(stX - 8, stationY - 4, 3, 2);
+        bgGraphics.fillStyle(0x1565c0, 1); bgGraphics.fillRect(stX - 8, stationY - 2, 3, 2);
+        bgGraphics.fillStyle(0xd32f2f, 1); bgGraphics.fillRect(stX - 8, stationY, 3, 2);
+
+        // Cúpula de observación y antena de radio con baliza
+        bgGraphics.fillStyle(0x00e5ff, 1);
+        bgGraphics.fillCircle(stX + 3, stationY, 2.5);
+        bgGraphics.lineStyle(1.4, 0xffffff, 0.9);
+        bgGraphics.lineBetween(stX, stationY - 6, stX, stationY - 14);
+        if (Math.floor(timeSec * 3) % 2 === 0) {
+          bgGraphics.fillStyle(0x76ff03, 1);
+          bgGraphics.fillCircle(stX, stationY - 15, 2);
+        }
+      }
+    }
   }
 
   // 7. OTROS MUNDOS Y PLANETAS LEJANOS (1800m a 2900m)
@@ -1984,12 +2067,15 @@ function spawnAnt() {
       }
       speed = Math.min(speed, 225); // Límite prudente en tierra
     } else {
-      if (rType < 0.45) {
+      if (rType < 0.32) {
         tex1 = 'tex_ufo_scout';
         speed *= 1.08; // Explorador extraterrestre ligero
-      } else if (rType < 0.75) {
+      } else if (rType < 0.60) {
         tex1 = 'tex_ufo_fighter';
         speed *= 1.15; // Caza estelar táctico
+      } else if (rType < 0.82) {
+        tex1 = 'tex_space_meteor';
+        speed *= 1.18; // Meteorito incandescente de magma cósmico
       } else {
         tex1 = 'tex_ufo_cruiser';
         speed *= 0.92; // Nave nodriza grande
@@ -2056,7 +2142,7 @@ function updateAnts(dt) {
         score += points;
         const smashPhrases = a.isGiant
           ? ['🫓 ¡BACHACO TOSTADO! +100', '💥 ¡NODRIZA DESTRUIDA! +100']
-          : ['🫓 ¡TOSTADA! +50', '🔥 ¡BUDARE POWER! +50', '💥 ¡PODER CRIOLLO! +50'];
+          : ['🫓 ¡TOSTADA! +50', '🔥 ¡BUDARE POWER! +50', '💥 ¡PODER CRIOLLO! +50', '☄️ ¡METEORITO DESTRUIDO! +50'];
         const msg = smashPhrases[Math.floor(Math.random() * smashPhrases.length)];
         addFloatingText(msg, a.sprite.x, a.sprite.y, '#ffd54f');
         a.sprite.destroy();
