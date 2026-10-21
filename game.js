@@ -689,8 +689,37 @@ function generateProceduralTextures(scene) {
   gMA.fillStyle(0xffffff, 1);
   gMA.fillCircle(8, 7, 1.5);
   gMA.generateTexture('tex_mini_arepa', 22, 22);
-  gMA.generateTexture('tex_star', 22, 22); // Compatibilidad
   gMA.destroy();
+
+  // 5B. ESTRELLA DORADA RADIANTE DE 5 PUNTAS (HUD y Compatibilidad)
+  const gStar = scene.make.graphics({ x: 0, y: 0, add: false });
+  function drawStar5(g, cx, cy, outerR, innerR) {
+    let rot = (Math.PI / 2) * 3;
+    const step = Math.PI / 5;
+    g.beginPath();
+    g.moveTo(cx, cy - outerR);
+    for (let i = 0; i < 5; i++) {
+      g.lineTo(cx + Math.cos(rot) * outerR, cy + Math.sin(rot) * outerR);
+      rot += step;
+      g.lineTo(cx + Math.cos(rot) * innerR, cy + Math.sin(rot) * innerR);
+      rot += step;
+    }
+    g.lineTo(cx, cy - outerR);
+    g.closePath();
+    g.fillPath();
+  }
+  // Resplandor cálido exterior
+  gStar.fillStyle(0xff9800, 0.5);
+  drawStar5(gStar, 12, 12, 11.5, 5.2);
+  // Cuerpo dorado brillante
+  gStar.fillStyle(0xffea00, 1.0);
+  drawStar5(gStar, 12, 12, 9.2, 4.0);
+  // Núcleo blanco reluciente
+  gStar.fillStyle(0xffffff, 0.95);
+  drawStar5(gStar, 12, 12, 4.5, 2.0);
+  gStar.generateTexture('tex_hud_star', 24, 24);
+  gStar.generateTexture('tex_star', 24, 24);
+  gStar.destroy();
 
   // 5. HORMIGAS EN VISTA DE PERFIL (DE LADO NORMAL) TREPANDO CON ANIMACIÓN ACTIVA DE 2 CUADROS
   function createSideAntTexture(name, mainColor, darkColor, eyeColor, isGiant = false) {
@@ -906,6 +935,9 @@ function createSleekHUD(scene) {
     stroke: '#000000',
     strokeThickness: 4,
   }).setOrigin(1, 0).setDepth(101);
+
+  // Estrella radiante de Poder Criollo en el HUD (brilla y gira cuando el escudo está activo)
+  hudTexts.superStarIcon = scene.add.sprite(362, 25, 'tex_hud_star').setDepth(102).setVisible(false);
 }
 
 function drawCRTScanlines(scene) {
@@ -1026,6 +1058,7 @@ function startFreshGame() {
     if (s) s.setVisible(false);
   });
   if (superAuraGraphics) superAuraGraphics.clear();
+  if (hudTexts.superStarIcon) hudTexts.superStarIcon.setVisible(false);
   ants = [];
   mangos = [];
   floatingTexts = [];
@@ -1219,13 +1252,13 @@ function updateWorldProgress(dt) {
     bestAltitude = Math.floor(altitude);
   }
 
-  // Spawn de Oleadas de Enemigos por los 8 carriles (oleadas moderadas y balanceadas)
+  // Spawn de Oleadas de Enemigos por los 8 carriles (oleadas fluidas para mantener hasta 5 en pantalla)
   antSpawnTimer += dt;
   const isSpace = altitude >= 850;
-  // Intervalo dinámico y balanceado de oleadas para dar tiempo de reacción arcade justo (1.8s a 2.6s)
+  // Intervalo dinámico y balanceado de oleadas para dar tiempo de reacción arcade justo (1.5s a 2.3s)
   const waveInterval = isSpace
-    ? Math.max(1.7, 2.3 - (altitude - 850) * 0.0003)
-    : Math.max(1.85, 2.6 - altitude * 0.0006);
+    ? Math.max(1.45, 2.05 - (altitude - 850) * 0.0003)
+    : Math.max(1.55, 2.30 - altitude * 0.0005);
   if (antSpawnTimer > waveInterval) {
     antSpawnTimer = 0;
     spawnAnt();
@@ -1767,8 +1800,8 @@ function spawnAnt() {
   if (!currentScene) return;
   const isSpaceShip = altitude >= 850;
 
-  // Límite estricto de enemigos simultáneos en pantalla para mantener el juego justo y disfrutable
-  const maxSimultaneous = isSpaceShip ? 4 : 3;
+  // Límite estricto de hasta 5 enemigos simultáneos en pantalla
+  const maxSimultaneous = 5;
   if (ants.length >= maxSimultaneous) return;
 
   // 8 Carriles posibles (4 matas de mango × 2 lados cada una: izquierda y derecha)
@@ -1779,18 +1812,19 @@ function spawnAnt() {
     { tIdx: 3, side: -1 }, { tIdx: 3, side: 1 },
   ];
 
-  // Control de densidad equilibrado: oleadas de 1 a 2 enemigos normalmente, rara vez 3
-  let count = 1;
+  // Control de densidad: oleadas equilibradas que llenan la pantalla con hasta 5 enemigos
+  let count = 2;
   const r = Math.random();
-  if (altitude < 150) {
-    count = r < 0.70 ? 1 : 2;
+  if (altitude < 120) {
+    count = r < 0.55 ? 1 : 2;
   } else if (altitude < 650) {
-    count = r < 0.40 ? 1 : (r < 0.85 ? 2 : 3);
+    count = r < 0.25 ? 1 : (r < 0.75 ? 2 : 3);
   } else {
-    count = r < 0.25 ? 1 : (r < 0.75 ? 2 : (r < 0.95 ? 3 : 4));
+    // En altitudes altas y espacio: ráfagas de 2 a 3 (hasta 4 si hay espacio libre)
+    count = r < 0.20 ? 1 : (r < 0.65 ? 2 : (r < 0.90 ? 3 : 4));
   }
 
-  // Ajustar count según el cupo restante en pantalla
+  // Ajustar count según el cupo restante en pantalla (máximo 5)
   count = Math.min(count, maxSimultaneous - ants.length);
   if (count <= 0) return;
 
@@ -1801,9 +1835,17 @@ function spawnAnt() {
   }
   const selectedLanes = allLanes.slice(0, count);
 
-  // La velocidad base escala fuertemente según la altitud recorrida (¡mientras más arriba, más rápido bajan!)
-  // Y es constante y autónoma: ¡NUNCA se pone lenta cuando el jugador para de trepar!
-  const baseSpeed = 135 + Math.min(320, altitude * 0.22);
+  // Velocidad de caída autónoma escalonada con moderación y límite de velocidad prudente:
+  // - En la tierra (0m a 850m): escala suavemente de 125 a 190 px/s
+  // - En el espacio (850m+): los extraterrestres comienzan moderados (~160 px/s) y aumentan
+  //   poco a poco con los metros recorridos hasta un límite prudente (~250-265 px/s)
+  let baseSpeed;
+  if (!isSpaceShip) {
+    baseSpeed = 125 + Math.min(65, altitude * 0.08);
+  } else {
+    // Al entrar al espacio arranca moderado (160 px/s) y sube gradualmente según la altura
+    baseSpeed = 160 + Math.min(80, (altitude - 850) * 0.06);
+  }
 
   selectedLanes.forEach((lane, idx) => {
     const { tIdx, side } = lane;
@@ -1820,35 +1862,37 @@ function spawnAnt() {
       } else if (rType < 0.65) {
         tex1 = 'tex_ant_black_1';
         tex2 = 'tex_ant_black_2';
-        speed *= 1.2;
+        speed *= 1.08;
       } else if (rType < 0.85) {
         tex1 = 'tex_ant_fire_1';
         tex2 = 'tex_ant_fire_2';
-        speed *= 1.4;
+        speed *= 1.15;
       } else {
         // Hormiga grande / Bachaco bravo en perfil de lado
         tex1 = 'tex_ant_giant_1';
         tex2 = 'tex_ant_giant_2';
-        speed *= 1.1;
+        speed *= 0.94;
         isGiant = true;
       }
+      speed = Math.min(speed, 225); // Límite prudente en tierra
     } else {
       if (rType < 0.45) {
         tex1 = 'tex_ufo_scout';
-        speed *= 1.35;
+        speed *= 1.08; // Explorador extraterrestre ligero
       } else if (rType < 0.75) {
         tex1 = 'tex_ufo_fighter';
-        speed *= 1.6;
+        speed *= 1.15; // Caza estelar táctico
       } else {
         tex1 = 'tex_ufo_cruiser';
-        speed *= 1.25;
+        speed *= 0.92; // Nave nodriza grande
         isGiant = true;
       }
       tex2 = null;
+      speed = Math.min(speed, 265); // Límite de velocidad prudente en el espacio exterior
     }
 
     // Variación sutil de velocidad individual
-    speed *= (0.94 + Math.random() * 0.14);
+    speed *= (0.97 + Math.random() * 0.06);
 
     const enemyX = TRUNK_X[tIdx] + side * (isSpaceShip ? 8 : (isGiant ? 7 : 6));
     // Escalonamiento vertical inteligente: crea cascadas zigzagueantes para que el jugador pueda maniobrar
@@ -1989,6 +2033,7 @@ function triggerChamitoDeath() {
   superTimer = 0;
   starShield.forEach((s) => s && s.setVisible(false));
   if (superAuraGraphics) superAuraGraphics.clear();
+  if (hudTexts.superStarIcon) hudTexts.superStarIcon.setVisible(false);
   sfx.stopBGM();
   sfx.chamitoFall();
 
@@ -2030,11 +2075,20 @@ function updateHUD() {
   hudTexts.mangos.setText(`${mangosCount} 🥭`);
   hudTexts.altitude.setText(`${Math.floor(altitude)}m`);
   if (superTimer > 0) {
-    hudTexts.score.setText(`${score} 🫓`);
+    hudTexts.score.setText(`${score} ★`);
     hudTexts.score.setColor('#ffd54f');
+    if (hudTexts.superStarIcon) {
+      hudTexts.superStarIcon.setVisible(true);
+      const timeSec = (currentScene && currentScene.time) ? (currentScene.time.now * 0.001) : 0;
+      hudTexts.superStarIcon.setRotation(timeSec * 3.5);
+      hudTexts.superStarIcon.setScale(1.0 + Math.sin(timeSec * 8) * 0.2);
+    }
   } else {
     hudTexts.score.setText(`${score}`);
     hudTexts.score.setColor('#ffffff');
+    if (hudTexts.superStarIcon) {
+      hudTexts.superStarIcon.setVisible(false);
+    }
   }
 }
 
